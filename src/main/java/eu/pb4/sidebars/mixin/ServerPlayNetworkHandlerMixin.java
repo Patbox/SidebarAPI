@@ -1,0 +1,208 @@
+package eu.pb4.sidebars.mixin;
+
+import eu.pb4.sidebars.SidebarAPIMod;
+import eu.pb4.sidebars.api.Sidebar;
+import eu.pb4.sidebars.api.SidebarLine;
+import eu.pb4.sidebars.interfaces.SidebarHolder;
+import net.minecraft.network.Packet;
+import net.minecraft.network.packet.s2c.play.ScoreboardDisplayS2CPacket;
+import net.minecraft.network.packet.s2c.play.ScoreboardObjectiveUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.ScoreboardPlayerUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.TeamS2CPacket;
+import net.minecraft.scoreboard.ScoreboardCriterion;
+import net.minecraft.scoreboard.ServerScoreboard;
+import net.minecraft.server.network.ServerPlayNetworkHandler;
+import net.minecraft.text.Text;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+@Mixin(ServerPlayNetworkHandler.class)
+public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
+
+    @Unique
+    private final Set<Sidebar> sidebars = new HashSet<>();
+    @Unique
+    private final SidebarLine[] lines = new SidebarLine[15];
+    @Unique
+    private Sidebar currentSidebar = null;
+    @Unique
+    private Text title = null;
+    @Unique
+    private boolean alreadyHidden = true;
+
+    @Shadow
+    public abstract void sendPacket(Packet<?> packet);
+
+    @Inject(method = "onDisconnected", at = @At("TAIL"))
+    private void removeFromSidebars(Text reason, CallbackInfo ci) {
+        for (Sidebar sidebar : new HashSet<>(this.sidebars)) {
+            sidebar.removePlayer((ServerPlayNetworkHandler) (Object) this);
+        }
+    }
+
+    @Inject(method = "tick", at = @At("TAIL"))
+    private void updateSidebar(CallbackInfo ci) {
+        if (this.currentSidebar == null && !this.alreadyHidden) {
+            this.alreadyHidden = true;
+            {
+                ScoreboardDisplayS2CPacket packet = new ScoreboardDisplayS2CPacket();
+                ScoreboardDisplayS2CPacketAccessor accessor = (ScoreboardDisplayS2CPacketAccessor) packet;
+                accessor.setName("");
+                accessor.setSlot(1);
+                this.sendPacket(packet);
+            }
+
+            {
+                ScoreboardObjectiveUpdateS2CPacket packet = new ScoreboardObjectiveUpdateS2CPacket();
+                SOUS2CPacketAccessor accessor = (SOUS2CPacketAccessor) packet;
+                accessor.setName(SidebarAPIMod.OBJECTIVE_NAME);
+                accessor.setMode(1);
+                this.sendPacket(packet);
+            }
+
+            this.title = null;
+            for (int index = 0; index < this.lines.length; index++) {
+                if (this.lines[index] != null) {
+                    this.sendPacket(new TeamS2CPacket(SidebarAPIMod.TEAMS.get(index), 1));
+                    this.lines[index] = null;
+                }
+            }
+        }
+
+        if (this.currentSidebar == null) {
+            return;
+        }
+
+        if (this.alreadyHidden) {
+            this.alreadyHidden = false;
+            this.title = this.currentSidebar.getTitle();
+
+            {
+                ScoreboardObjectiveUpdateS2CPacket packet = new ScoreboardObjectiveUpdateS2CPacket();
+                SOUS2CPacketAccessor accessor = (SOUS2CPacketAccessor) packet;
+                accessor.setName(SidebarAPIMod.OBJECTIVE_NAME);
+                accessor.setTitle(this.title);
+                accessor.setMode(0);
+                accessor.setRenderType(ScoreboardCriterion.RenderType.INTEGER);
+                this.sendPacket(packet);
+            }
+            {
+                ScoreboardDisplayS2CPacket packet = new ScoreboardDisplayS2CPacket();
+                ScoreboardDisplayS2CPacketAccessor accessor = (ScoreboardDisplayS2CPacketAccessor) packet;
+                accessor.setName(SidebarAPIMod.OBJECTIVE_NAME);
+                accessor.setSlot(1);
+                this.sendPacket(packet);
+            }
+
+            int x = 0;
+            for (SidebarLine line : this.currentSidebar.getLinesFor((ServerPlayNetworkHandler) (Object) this)) {
+                this.lines[x] = line.copy();
+                TeamS2CPacket packet = new TeamS2CPacket(SidebarAPIMod.TEAMS.get(x), 0);
+                ((TeamS2CPacketAccessor) packet).setPrefix(line.getText((ServerPlayNetworkHandler) (Object) this));
+                this.sendPacket(packet);
+
+                this.sendPacket(new ScoreboardPlayerUpdateS2CPacket(
+                        ServerScoreboard.UpdateMode.CHANGE, SidebarAPIMod.OBJECTIVE_NAME, SidebarAPIMod.FAKE_PLAYER_NAMES.get(x), line.getValue()));
+                x++;
+            }
+        } else {
+            Text sidebarTitle = this.currentSidebar.getTitle();
+            if (!sidebarTitle.equals(this.title)) {
+                this.title = sidebarTitle;
+                ScoreboardObjectiveUpdateS2CPacket packet = new ScoreboardObjectiveUpdateS2CPacket();
+                SOUS2CPacketAccessor accessor = (SOUS2CPacketAccessor) packet;
+                accessor.setName(SidebarAPIMod.OBJECTIVE_NAME);
+                accessor.setTitle(this.title);
+                accessor.setMode(2);
+                accessor.setRenderType(ScoreboardCriterion.RenderType.INTEGER);
+                this.sendPacket(packet);
+            }
+
+            int index = 0;
+
+            for (SidebarLine line : this.currentSidebar.getLinesFor((ServerPlayNetworkHandler) (Object) this)) {
+                if (!line.equals(this.lines[index])) {
+                    TeamS2CPacket packet = new TeamS2CPacket(SidebarAPIMod.TEAMS.get(index), this.lines[index] == null ? 0 : 2);
+                    ((TeamS2CPacketAccessor) packet).setPrefix(line.getText((ServerPlayNetworkHandler) (Object) this));
+                    this.sendPacket(packet);
+
+                    this.sendPacket(new ScoreboardPlayerUpdateS2CPacket(
+                            ServerScoreboard.UpdateMode.CHANGE, SidebarAPIMod.OBJECTIVE_NAME, SidebarAPIMod.FAKE_PLAYER_NAMES.get(index), line.getValue()));
+
+                    this.lines[index] = line.copy();
+                }
+                index++;
+            }
+
+            for (; index < this.lines.length; index++) {
+                if (this.lines[index] != null) {
+                    this.sendPacket(new ScoreboardPlayerUpdateS2CPacket(
+                            ServerScoreboard.UpdateMode.REMOVE, SidebarAPIMod.OBJECTIVE_NAME, SidebarAPIMod.FAKE_PLAYER_NAMES.get(index), 0));
+                    this.sendPacket(new TeamS2CPacket(SidebarAPIMod.TEAMS.get(index), 1));
+                }
+
+                this.lines[index] = null;
+            }
+        }
+    }
+
+    @Override
+    public void addSidebar(Sidebar sidebar) {
+        this.sidebars.add(sidebar);
+        this.updateCurrentSidebar(sidebar);
+    }
+
+    @Override
+    public void removeSidebar(Sidebar sidebar) {
+        this.sidebars.remove(sidebar);
+        if (sidebar == this.currentSidebar) {
+            Sidebar newSidebar = null;
+            for (Sidebar sidebar1 : this.sidebars) {
+                if (newSidebar == null || newSidebar.getPriority().isLowerThan(sidebar1.getPriority())) {
+                    newSidebar = sidebar1;
+                }
+            }
+            this.setCurrentSidebar(sidebar);
+        }
+    }
+
+    @Override
+    public Set<Sidebar> getSidebarSet() {
+        return Collections.unmodifiableSet(this.sidebars);
+    }
+
+    @Override
+    public Sidebar getCurrentSidebar() {
+        return this.currentSidebar;
+    }
+
+    @Unique
+    private void setCurrentSidebar(Sidebar sidebar) {
+        this.currentSidebar = sidebar;
+    }
+
+    @Override
+    public void updateCurrentSidebar(Sidebar candidate) {
+        if (this.currentSidebar != null) {
+            if (this.currentSidebar.getPriority().isLowerThan(candidate.getPriority())) {
+                this.setCurrentSidebar(candidate);
+            }
+        } else {
+            this.setCurrentSidebar(candidate);
+        }
+    }
+
+    @Override
+    public void clearSidebars() {
+        this.sidebars.clear();
+        this.setCurrentSidebar(null);
+    }
+}

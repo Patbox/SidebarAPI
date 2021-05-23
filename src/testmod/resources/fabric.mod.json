@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "testmod",
+  "version": "1.0.0",
+
+  "name": "Test Mod",
+  "description": "Library for creating server side guis!",
+  "authors": [
+    "Patbox"
+  ],
+  "contact": {
+    "homepage": "https://pb4.eu"
+  },
+
+  "license": "LGPLv3",
+  "mixins": [
+    "test.mixins.json"
+  ],
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "eu.pb4.sidebarstest.TestMod"
+    ]
+  },
+
+  "depends": {
+    "fabricloader": ">=0.7.4",
+    "fabric": "*",
+    "minecraft": "1.16.x"
+  }
+}

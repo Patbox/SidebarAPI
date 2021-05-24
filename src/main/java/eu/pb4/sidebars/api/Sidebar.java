@@ -8,6 +8,7 @@ import net.minecraft.text.Text;
 
 import java.util.*;
 
+
 public class Sidebar {
     protected List<SidebarLine> elements = new ArrayList<>();
     protected Set<ServerPlayNetworkHandler> players = new HashSet<>();
@@ -48,21 +49,22 @@ public class Sidebar {
         this.title = title;
     }
 
-    public void setLine(int pos, Text text) {
+    public void setLine(int value, Text text) {
         for (SidebarLine line : this.elements) {
-            if (line.getValue() == pos) {
-                this.elements.set(this.elements.indexOf(line), new SimpleSidebarLine(pos, text));
+            if (line.getValue() == value) {
+                this.elements.set(this.elements.indexOf(line), new SimpleSidebarLine(value, text, this));
                 return;
             }
         }
 
-        this.elements.add(new SimpleSidebarLine(pos, text));
+        this.elements.add(new SimpleSidebarLine(value, text, this));
         this.isDirty = true;
     }
 
     public void setLine(SidebarLine line) {
         for (SidebarLine cLine : this.elements) {
             if (line.getValue() == cLine.getValue()) {
+                line.setSidebar(this);
                 this.elements.set(this.elements.indexOf(cLine), line);
                 return;
             }
@@ -72,34 +74,40 @@ public class Sidebar {
         this.isDirty = true;
     }
 
-    public void addLine(SidebarLine... line) {
-        this.elements.addAll(Arrays.asList(line));
+    public void addLine(SidebarLine... lines) {
+        for (SidebarLine line : lines) {
+            line.setSidebar(this);
+            this.elements.add(line);
+        }
+
         this.isDirty = true;
     }
 
-    public void addLine(Text... text) {
+    public void addLine(Text... texts) {
         if (this.elements.isEmpty()) {
-            int lastLine = text.length;
-            for (Text t : text) {
-                this.elements.add(new SimpleSidebarLine(--lastLine, t));
+            int lastLine = texts.length;
+            for (Text t : texts) {
+                this.elements.add(new SimpleSidebarLine(--lastLine, t, this));
             }
         } else {
             this.sortIfDirty();
             int lastLine = this.elements.get(this.elements.size() - 1).getValue();
-            for (Text t : text) {
-                this.elements.add(new SimpleSidebarLine(--lastLine, t));
+            for (Text t : texts) {
+                this.elements.add(new SimpleSidebarLine(--lastLine, t, this));
             }
         }
     }
 
     public void removeLine(SidebarLine line) {
         this.elements.remove(line);
+        line.setSidebar(null);
     }
 
     public void removeLine(int value) {
         for (SidebarLine line : new ArrayList<>(this.elements)) {
             if (line.getValue() == value) {
                 this.elements.remove(line);
+                line.setSidebar(null);
             }
         }
     }
@@ -115,16 +123,20 @@ public class Sidebar {
     }
 
     public void replaceLines(Text... texts) {
-        this.elements.clear();
+        this.clearLines();
         this.addLine(texts);
     }
 
     public void replaceLines(SidebarLine... lines) {
-        this.elements.clear();
+        this.clearLines();
         this.addLine(lines);
     }
 
     public void clearLines() {
+        for (SidebarLine line : this.elements) {
+            line.setSidebar(null);
+        }
+
         this.elements.clear();
     }
 

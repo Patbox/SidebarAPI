@@ -1,6 +1,7 @@
 package eu.pb4.sidebars.mixin;
 
 import eu.pb4.sidebars.SidebarAPIMod;
+import eu.pb4.sidebars.api.ImmutableSidebarLine;
 import eu.pb4.sidebars.api.Sidebar;
 import eu.pb4.sidebars.api.SidebarLine;
 import eu.pb4.sidebars.interfaces.SidebarHolder;
@@ -30,7 +31,7 @@ public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
     @Unique
     private final Set<Sidebar> sidebars = new HashSet<>();
     @Unique
-    private final SidebarLine[] lines = new SidebarLine[15];
+    private final ImmutableSidebarLine[] lines = new ImmutableSidebarLine[15];
     @Unique
     private Sidebar currentSidebar = null;
     @Unique
@@ -104,7 +105,7 @@ public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
 
             int x = 0;
             for (SidebarLine line : this.currentSidebar.getLinesFor((ServerPlayNetworkHandler) (Object) this)) {
-                this.lines[x] = line.copy();
+                this.lines[x] = line.immutableCopy((ServerPlayNetworkHandler) (Object) this);
                 TeamS2CPacket packet = new TeamS2CPacket(SidebarAPIMod.TEAMS.get(x), 0);
                 ((TeamS2CPacketAccessor) packet).setPrefix(line.getText((ServerPlayNetworkHandler) (Object) this));
                 this.sendPacket(packet);
@@ -129,7 +130,7 @@ public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
             int index = 0;
 
             for (SidebarLine line : this.currentSidebar.getLinesFor((ServerPlayNetworkHandler) (Object) this)) {
-                if (!line.equals(this.lines[index])) {
+                if (this.lines[index] == null || !this.lines[index].equals(line, (ServerPlayNetworkHandler) (Object) this)) {
                     TeamS2CPacket packet = new TeamS2CPacket(SidebarAPIMod.TEAMS.get(index), this.lines[index] == null ? 0 : 2);
                     ((TeamS2CPacketAccessor) packet).setPrefix(line.getText((ServerPlayNetworkHandler) (Object) this));
                     this.sendPacket(packet);
@@ -137,7 +138,7 @@ public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
                     this.sendPacket(new ScoreboardPlayerUpdateS2CPacket(
                             ServerScoreboard.UpdateMode.CHANGE, SidebarAPIMod.OBJECTIVE_NAME, SidebarAPIMod.FAKE_PLAYER_NAMES.get(index), line.getValue()));
 
-                    this.lines[index] = line.copy();
+                    this.lines[index] = line.immutableCopy((ServerPlayNetworkHandler) (Object) this);
                 }
                 index++;
             }

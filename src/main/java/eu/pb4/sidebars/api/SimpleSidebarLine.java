@@ -3,13 +3,22 @@ package eu.pb4.sidebars.api;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.text.Text;
 
+/**
+ * Simple implementation of SidebarLine
+ */
 public class SimpleSidebarLine implements SidebarLine {
     private Text text;
     private int value;
+    private Sidebar sidebar;
 
     public SimpleSidebarLine(int value, Text text) {
         this.text = text;
         this.value = value;
+    }
+
+    protected SimpleSidebarLine(int value, Text text, Sidebar sidebar) {
+        this(value, text);
+        this.sidebar = sidebar;
     }
 
     public int getValue() {
@@ -18,6 +27,9 @@ public class SimpleSidebarLine implements SidebarLine {
 
     public void setValue(int value) {
         this.value = value;
+        if (this.sidebar != null) {
+            this.sidebar.markDirty();
+        }
     }
 
     public Text getText() {
@@ -32,7 +44,7 @@ public class SimpleSidebarLine implements SidebarLine {
         this.text = text;
     }
 
-    public SimpleSidebarLine copy() {
-        return new SimpleSidebarLine(this.value, text.shallowCopy());
+    public void setSidebar(Sidebar sidebar) {
+        this.sidebar = sidebar;
     }
 }

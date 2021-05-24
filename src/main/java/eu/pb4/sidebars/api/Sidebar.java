@@ -22,6 +22,11 @@ public class Sidebar {
         this.title = new LiteralText("");
     }
 
+    public Sidebar(Text title, Priority priority) {
+        this.priority = priority;
+        this.title = title;
+    }
+
     public Priority getPriority() {
         return this.priority;
     }
@@ -69,12 +74,12 @@ public class Sidebar {
 
     public void addLine(SidebarLine... line) {
         this.elements.addAll(Arrays.asList(line));
-        this.sortIfDirty();
+        this.isDirty = true;
     }
 
     public void addLine(Text... text) {
         if (this.elements.isEmpty()) {
-            int lastLine = 16;
+            int lastLine = text.length;
             for (Text t : text) {
                 this.elements.add(new SimpleSidebarLine(--lastLine, t));
             }
@@ -87,9 +92,21 @@ public class Sidebar {
         }
     }
 
-    public SidebarLine getLine(int pos) {
+    public void removeLine(SidebarLine line) {
+        this.elements.remove(line);
+    }
+
+    public void removeLine(int value) {
+        for (SidebarLine line : new ArrayList<>(this.elements)) {
+            if (line.getValue() == value) {
+                this.elements.remove(line);
+            }
+        }
+    }
+
+    public SidebarLine getLine(int value) {
         for (SidebarLine line : this.elements) {
-            if (line.getValue() == pos) {
+            if (line.getValue() == value) {
                 return line;
             }
         }
@@ -97,8 +114,26 @@ public class Sidebar {
         return null;
     }
 
+    public void replaceLines(Text... texts) {
+        this.elements.clear();
+        this.addLine(texts);
+    }
+
+    public void replaceLines(SidebarLine... lines) {
+        this.elements.clear();
+        this.addLine(lines);
+    }
+
     public void clearLines() {
         this.elements.clear();
+    }
+
+    public boolean isDirty() {
+        return this.isDirty;
+    }
+
+    public void markDirty() {
+        this.isDirty = true;
     }
 
     public List<SidebarLine> getLinesFor(ServerPlayNetworkHandler handler) {

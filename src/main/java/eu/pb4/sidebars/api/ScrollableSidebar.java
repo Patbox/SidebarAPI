@@ -3,6 +3,7 @@ package eu.pb4.sidebars.api;
 import it.unimi.dsi.fastutil.objects.Object2LongArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
+import net.minecraft.text.Text;
 
 import java.util.List;
 
@@ -12,6 +13,11 @@ public class ScrollableSidebar extends Sidebar {
 
     public ScrollableSidebar(Priority priority, int scrollTickNumber) {
         super(priority);
+        this.scrollTickNumber = scrollTickNumber;
+    }
+
+    public ScrollableSidebar(Text title, Priority priority, int scrollTickNumber) {
+        super(title, priority);
         this.scrollTickNumber = scrollTickNumber;
     }
 

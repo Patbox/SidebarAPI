@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_8",
   "mixins": [
     "ScoreboardDisplayS2CPacketAccessor",
+    "SerializableTeamAccessor",
     "ServerPlayNetworkHandlerMixin",
     "SOUS2CPacketAccessor",
     "TeamS2CPacketAccessor"

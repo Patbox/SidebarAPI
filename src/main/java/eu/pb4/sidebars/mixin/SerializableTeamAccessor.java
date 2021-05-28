@@ -6,11 +6,9 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-import java.util.Optional;
-
-@Mixin(TeamS2CPacket.class)
-public interface TeamS2CPacketAccessor {
+@Mixin(TeamS2CPacket.SerializableTeam.class)
+public interface SerializableTeamAccessor {
     @Mutable
-    @Accessor("team")
-    Optional<TeamS2CPacket.SerializableTeam> getTeam();
+    @Accessor("prefix")
+    void setPrefix(Text text);
 }

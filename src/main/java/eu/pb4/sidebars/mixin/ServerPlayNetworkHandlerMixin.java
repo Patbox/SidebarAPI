@@ -97,7 +97,7 @@ public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
             for (SidebarLine line : this.currentSidebar.getLinesFor((ServerPlayNetworkHandler) (Object) this)) {
                 this.lines[x] = line.immutableCopy((ServerPlayNetworkHandler) (Object) this);
                 TeamS2CPacket packet = TeamS2CPacket.updateTeam(SidebarAPIMod.TEAMS.get(x), true);
-                ((SerializableTeamAccessor) ((TeamS2CPacketAccessor) packet).getTeam().get()).setPrefix(line.getText((ServerPlayNetworkHandler) (Object) this));
+                ((SerializableTeamAccessor) packet.getTeam().get()).setPrefix(line.getText((ServerPlayNetworkHandler) (Object) this));
                 this.sendPacket(packet);
 
                 this.sendPacket(new ScoreboardPlayerUpdateS2CPacket(
@@ -119,7 +119,7 @@ public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
             for (SidebarLine line : this.currentSidebar.getLinesFor((ServerPlayNetworkHandler) (Object) this)) {
                 if (this.lines[index] == null || !this.lines[index].equals(line, (ServerPlayNetworkHandler) (Object) this)) {
                     TeamS2CPacket packet = TeamS2CPacket.updateTeam(SidebarAPIMod.TEAMS.get(index),this.lines[index] == null);
-                    ((SerializableTeamAccessor) ((TeamS2CPacketAccessor) packet).getTeam().get()).setPrefix(line.getText((ServerPlayNetworkHandler) (Object) this));
+                    ((SerializableTeamAccessor) packet.getTeam().get()).setPrefix(line.getText((ServerPlayNetworkHandler) (Object) this));
                     this.sendPacket(packet);
 
                     this.sendPacket(new ScoreboardPlayerUpdateS2CPacket(
@@ -158,7 +158,7 @@ public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
                     newSidebar = sidebar1;
                 }
             }
-            this.setCurrentSidebar(sidebar);
+            this.setCurrentSidebar(newSidebar);
         }
     }
 

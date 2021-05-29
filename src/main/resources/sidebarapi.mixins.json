@@ -7,8 +7,7 @@
     "ScoreboardDisplayS2CPacketAccessor",
     "SerializableTeamAccessor",
     "ServerPlayNetworkHandlerMixin",
-    "SOUS2CPacketAccessor",
-    "TeamS2CPacketAccessor"
+    "SOUS2CPacketAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

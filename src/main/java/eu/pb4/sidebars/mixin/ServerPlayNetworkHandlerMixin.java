@@ -171,7 +171,7 @@ public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
                     newSidebar = sidebar1;
                 }
             }
-            this.setCurrentSidebar(sidebar);
+            this.setCurrentSidebar(newSidebar);
         }
     }
 

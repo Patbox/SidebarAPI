@@ -1,5 +1,8 @@
 package eu.pb4.sidebars.api;
 
+import eu.pb4.sidebars.api.lines.LineBuilder;
+import eu.pb4.sidebars.api.lines.SidebarLine;
+import eu.pb4.sidebars.api.lines.SimpleSidebarLine;
 import eu.pb4.sidebars.interfaces.SidebarHolder;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -7,8 +10,11 @@ import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 
 import java.util.*;
+import java.util.function.Consumer;
 
-
+/**
+ * Basic sidebar with all of basic functionality
+ */
 public class Sidebar {
     protected List<SidebarLine> elements = new ArrayList<>();
     protected Set<ServerPlayNetworkHandler> players = new HashSet<>();
@@ -74,7 +80,7 @@ public class Sidebar {
         this.isDirty = true;
     }
 
-    public void addLine(SidebarLine... lines) {
+    public void addLines(SidebarLine... lines) {
         for (SidebarLine line : lines) {
             line.setSidebar(this);
             this.elements.add(line);
@@ -83,7 +89,8 @@ public class Sidebar {
         this.isDirty = true;
     }
 
-    public void addLine(Text... texts) {
+
+    public void addLines(Text... texts) {
         if (this.elements.isEmpty()) {
             int lastLine = texts.length;
             for (Text t : texts) {
@@ -91,7 +98,7 @@ public class Sidebar {
             }
         } else {
             this.sortIfDirty();
-            int lastLine = this.elements.get(this.elements.size() - 1).getValue();
+            int lastLine = this.elements.get(this.elements.size()).getValue();
             for (Text t : texts) {
                 this.elements.add(new SimpleSidebarLine(--lastLine, t, this));
             }
@@ -124,12 +131,16 @@ public class Sidebar {
 
     public void replaceLines(Text... texts) {
         this.clearLines();
-        this.addLine(texts);
+        this.addLines(texts);
     }
 
     public void replaceLines(SidebarLine... lines) {
         this.clearLines();
-        this.addLine(lines);
+        this.addLines(lines);
+    }
+
+    public void replaceLines(LineBuilder builder) {
+        this.replaceLines(builder.getLines().toArray(new SidebarLine[0]));
     }
 
     public void clearLines() {
@@ -138,6 +149,12 @@ public class Sidebar {
         }
 
         this.elements.clear();
+    }
+
+    public void set(Consumer<LineBuilder> consumer) {
+        LineBuilder builder = new LineBuilder();
+        consumer.accept(builder);
+        this.replaceLines(builder);
     }
 
     public boolean isDirty() {
@@ -177,7 +194,6 @@ public class Sidebar {
     public void hide() {
         if (this.isActive) {
             this.isActive = false;
-
             for (ServerPlayNetworkHandler player : this.players) {
                 ((SidebarHolder) player).removeSidebar(this);
             }
@@ -189,8 +205,7 @@ public class Sidebar {
     }
 
     public void addPlayer(ServerPlayNetworkHandler handler) {
-        if (!this.players.contains(handler)) {
-            this.players.add(handler);
+        if (this.players.add(handler)) {
             if (isActive) {
                 ((SidebarHolder) handler).addSidebar(this);
             }
@@ -198,8 +213,7 @@ public class Sidebar {
     }
 
     public void removePlayer(ServerPlayNetworkHandler handler) {
-        if (this.players.contains(handler)) {
-            this.players.remove(handler);
+        if (this.players.remove(handler)) {
             if (isActive) {
                 if (!handler.player.isDisconnected()) {
                     ((SidebarHolder) handler).removeSidebar(this);

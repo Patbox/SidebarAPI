@@ -1,9 +1,9 @@
 package eu.pb4.sidebars.mixin;
 
 import eu.pb4.sidebars.SidebarAPIMod;
-import eu.pb4.sidebars.api.ImmutableSidebarLine;
+import eu.pb4.sidebars.api.lines.ImmutableSidebarLine;
 import eu.pb4.sidebars.api.Sidebar;
-import eu.pb4.sidebars.api.SidebarLine;
+import eu.pb4.sidebars.api.lines.SidebarLine;
 import eu.pb4.sidebars.interfaces.SidebarHolder;
 import net.minecraft.network.Packet;
 import net.minecraft.network.packet.s2c.play.ScoreboardDisplayS2CPacket;

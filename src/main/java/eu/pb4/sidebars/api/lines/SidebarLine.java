@@ -1,8 +1,13 @@
-package eu.pb4.sidebars.api;
+package eu.pb4.sidebars.api.lines;
 
+import eu.pb4.sidebars.api.Sidebar;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.function.Function;
 
 /**
  * Minimalistic interface for creating own SidebarLines
@@ -14,6 +19,11 @@ public interface SidebarLine {
      * Highest number is always on top
      */
     int getValue();
+
+    /**
+     * Changes value of sidebar line. Used by {@Code LineBuilder}
+     */
+    boolean setValue(int value);
 
     /**
      * Gets text for selected player. Uses
@@ -42,27 +52,33 @@ public interface SidebarLine {
      * @param textBuilder Function creating text
      * @return SidebarLine 
      */
-    static SidebarLine create(int value, GetText textBuilder) {
-        return new SidebarLine() {
-            @Override
-            public int getValue() {
-                return value;
-            }
-
-            @Override
-            public Text getText(ServerPlayNetworkHandler handler) {
-                return textBuilder.getText(handler);
-            }
-
-            @Override
-            public void setSidebar(@Nullable Sidebar sidebar) {
-
-            }
-        };
+    static SidebarLine create(int value, Function<@Nullable ServerPlayerEntity, Text> textBuilder) {
+        return new SuppliedSidebarLine(value, textBuilder);
     }
 
-    @FunctionalInterface
-    interface GetText {
-        Text getText(ServerPlayNetworkHandler handler);
+    /**
+     * Quick way to create SidebarLine instance with more advanced text building
+     *
+     * @param value Scoreboard value
+     * @param text Text
+     * @return SidebarLine
+     */
+    static SidebarLine create(int value, Text text) {
+        return new SimpleSidebarLine(value, text);
+    }
+
+    /**
+     * Quick way to create SidebarLine instance with more advanced text building
+     *
+     * @param value Scoreboard value
+     * @return SidebarLine
+     */
+    static SidebarLine createEmpty(int value) {
+        return new AbstractSidebarLine() {
+            @Override
+            public Text getText() {
+                return LiteralText.EMPTY;
+            }
+        };
     }
 }

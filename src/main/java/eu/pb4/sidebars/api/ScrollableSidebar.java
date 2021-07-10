@@ -1,5 +1,6 @@
 package eu.pb4.sidebars.api;
 
+import eu.pb4.sidebars.api.lines.SidebarLine;
 import it.unimi.dsi.fastutil.objects.Object2LongArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import net.minecraft.server.network.ServerPlayNetworkHandler;

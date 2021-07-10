@@ -1,26 +1,23 @@
-package eu.pb4.sidebars.api;
+package eu.pb4.sidebars.api.lines;
 
+import eu.pb4.sidebars.api.Sidebar;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Objects;
-
 /**
  * Immutable version of SidebarLine used for comparison of change.
  */
-public final class ImmutableSidebarLine implements SidebarLine {
-    private final Text text;
-    private final int value;
-
-    public ImmutableSidebarLine(int value, Text text) {
-        this.text = text;
-        this.value = value;
-    }
+public record ImmutableSidebarLine(int value, Text text) implements SidebarLine {
 
     @Override
     public int getValue() {
         return this.value;
+    }
+
+    @Override
+    public boolean setValue(int value) {
+        return false;
     }
 
     @Override

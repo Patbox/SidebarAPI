@@ -38,6 +38,8 @@ public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
     @Unique
     private boolean alreadyHidden = true;
 
+    @Unique int currentTick = 0;
+
     @Shadow
     public abstract void sendPacket(Packet<?> packet);
 
@@ -59,7 +61,6 @@ public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
 
             {
                 ScoreboardObjectiveUpdateS2CPacket packet = new ScoreboardObjectiveUpdateS2CPacket( SidebarAPIMod.SCOREBOARD_OBJECTIVE, 1);
-                SOUS2CPacketAccessor accessor = (SOUS2CPacketAccessor) packet;
                 this.sendPacket(packet);
             }
 
@@ -79,6 +80,7 @@ public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
         if (this.alreadyHidden) {
             this.alreadyHidden = false;
             this.title = this.currentSidebar.getTitle();
+            this.currentTick = 0;
 
             {
                 ScoreboardObjectiveUpdateS2CPacket packet = new ScoreboardObjectiveUpdateS2CPacket(SidebarAPIMod.SCOREBOARD_OBJECTIVE, 0);
@@ -105,6 +107,11 @@ public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
                 x++;
             }
         } else {
+            if (this.currentTick % this.currentSidebar.getUpdateRate() != 0) {
+                this.currentTick++;
+                return;
+            }
+
             Text sidebarTitle = this.currentSidebar.getTitle();
             if (!sidebarTitle.equals(this.title)) {
                 this.title = sidebarTitle;
@@ -139,6 +146,7 @@ public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
 
                 this.lines[index] = null;
             }
+            this.currentTick++;
         }
     }
 

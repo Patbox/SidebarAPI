@@ -3,6 +3,7 @@ package eu.pb4.sidebarstest;
 import com.mojang.brigadier.context.CommandContext;
 import eu.pb4.sidebars.api.ScrollableSidebar;
 import eu.pb4.sidebars.api.Sidebar;
+import eu.pb4.sidebars.api.lines.SidebarLine;
 import eu.pb4.sidebars.interfaces.SidebarHolder;
 import eu.pb4.sidebarstest.mixin.StyleAccessor;
 import net.fabricmc.api.ModInitializer;
@@ -116,6 +117,15 @@ public class TestMod implements ModInitializer {
                             Math.random() > 0.6 ? new Identifier("default") : Math.random() > 0.3 ? new Identifier("uniform") : new Identifier("alt")
                     )
             ));
+            int speed = (int) (Math.random() * 20);
+            sidebar.setUpdateRate(speed);
+
+            sidebar.addLines(SidebarLine.create(2, new LiteralText("" + speed)));
+
+            sidebar.addLines(SidebarLine.create(2, (p) -> {
+                System.out.println(p.age);
+                return new LiteralText("" + p.age);
+            }));
 
             sidebar.addPlayer(player);
             sidebar.show();

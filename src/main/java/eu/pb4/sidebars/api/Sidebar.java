@@ -15,12 +15,14 @@ import java.util.function.Consumer;
 /**
  * Basic sidebar with all of basic functionality
  */
+@SuppressWarnings({ "unused" })
 public class Sidebar {
     protected List<SidebarLine> elements = new ArrayList<>();
     protected Set<ServerPlayNetworkHandler> players = new HashSet<>();
     protected Priority priority;
     protected Text title;
     protected boolean isDirty = false;
+    protected int updateRate = 1;
 
     protected boolean isActive = false;
 
@@ -45,6 +47,14 @@ public class Sidebar {
                 ((SidebarHolder) player).updateCurrentSidebar(this);
             }
         }
+    }
+
+    public int getUpdateRate() {
+        return this.updateRate;
+    }
+
+    public void setUpdateRate(int updateRate) {
+        this.updateRate = Math.max(updateRate, 1);
     }
 
     public Text getTitle() {
@@ -98,7 +108,7 @@ public class Sidebar {
             }
         } else {
             this.sortIfDirty();
-            int lastLine = this.elements.get(this.elements.size()).getValue();
+            int lastLine = this.elements.get(this.elements.size() - 1).getValue();
             for (Text t : texts) {
                 this.elements.add(new SimpleSidebarLine(--lastLine, t, this));
             }
@@ -174,11 +184,7 @@ public class Sidebar {
     protected void sortIfDirty() {
         if (this.isDirty) {
             this.isDirty = false;
-            Collections.sort(this.elements, (a, b) ->
-                    a.getValue() < b.getValue()
-                            ? 1
-                            : a.getValue() > b.getValue()
-                            ? -1 : 0);
+            this.elements.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
         }
     }
 

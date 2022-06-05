@@ -3,7 +3,6 @@ package eu.pb4.sidebars.api.lines;
 import eu.pb4.sidebars.api.Sidebar;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,7 +36,7 @@ public interface SidebarLine {
      * Creates a static, immutable copy of this SidebarLine, that's used for comparing
      */
     default ImmutableSidebarLine immutableCopy(ServerPlayNetworkHandler handler) {
-        return new ImmutableSidebarLine(this.getValue(), this.getText(handler).shallowCopy());
+        return new ImmutableSidebarLine(this.getValue(), this.getText(handler).copy());
     }
 
     /**
@@ -77,7 +76,7 @@ public interface SidebarLine {
         return new AbstractSidebarLine() {
             @Override
             public Text getText() {
-                return LiteralText.EMPTY;
+                return Text.empty();
             }
         };
     }

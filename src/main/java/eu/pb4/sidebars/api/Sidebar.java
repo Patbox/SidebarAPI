@@ -6,7 +6,6 @@ import eu.pb4.sidebars.api.lines.SimpleSidebarLine;
 import eu.pb4.sidebars.interfaces.SidebarHolder;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 
 import java.util.*;
@@ -28,7 +27,7 @@ public class Sidebar {
 
     public Sidebar(Priority priority) {
         this.priority = priority;
-        this.title = new LiteralText("");
+        this.title = Text.empty();
     }
 
     public Sidebar(Text title, Priority priority) {

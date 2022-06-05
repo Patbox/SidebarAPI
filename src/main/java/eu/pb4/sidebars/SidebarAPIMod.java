@@ -5,7 +5,7 @@ import net.minecraft.scoreboard.Scoreboard;
 import net.minecraft.scoreboard.ScoreboardCriterion;
 import net.minecraft.scoreboard.ScoreboardObjective;
 import net.minecraft.scoreboard.Team;
-import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +16,7 @@ public class SidebarAPIMod implements ModInitializer {
     public static final Scoreboard SCOREBOARD = new Scoreboard();
     public static final String OBJECTIVE_NAME = "■SidebarApiObj";
     public static final String TEAM_NAME = "■SidebarApi-";
-    public static final ScoreboardObjective SCOREBOARD_OBJECTIVE = new ScoreboardObjective(SCOREBOARD, OBJECTIVE_NAME, ScoreboardCriterion.DUMMY, new LiteralText("Something went wrong..."), ScoreboardCriterion.RenderType.INTEGER);
+    public static final ScoreboardObjective SCOREBOARD_OBJECTIVE = new ScoreboardObjective(SCOREBOARD, OBJECTIVE_NAME, ScoreboardCriterion.DUMMY, Text.literal("Something went wrong..."), ScoreboardCriterion.RenderType.INTEGER);
 
     @Override
     public void onInitialize() {

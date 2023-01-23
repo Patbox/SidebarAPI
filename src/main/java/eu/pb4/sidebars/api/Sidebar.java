@@ -3,10 +3,10 @@ package eu.pb4.sidebars.api;
 import eu.pb4.sidebars.api.lines.LineBuilder;
 import eu.pb4.sidebars.api.lines.SidebarLine;
 import eu.pb4.sidebars.api.lines.SimpleSidebarLine;
-import eu.pb4.sidebars.interfaces.SidebarHolder;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -15,7 +15,7 @@ import java.util.function.Consumer;
  * Basic sidebar with all of basic functionality
  */
 @SuppressWarnings({ "unused" })
-public class Sidebar {
+public class Sidebar implements SidebarInterface {
     protected List<SidebarLine> elements = new ArrayList<>();
     protected Set<ServerPlayNetworkHandler> players = new HashSet<>();
     protected Priority priority;
@@ -43,7 +43,7 @@ public class Sidebar {
         this.priority = priority;
         if (this.isActive) {
             for (ServerPlayNetworkHandler player : this.players) {
-                ((SidebarHolder) player).updateCurrentSidebar(this);
+                SidebarUtils.updatePriorities(player, this);
             }
         }
     }
@@ -58,6 +58,11 @@ public class Sidebar {
 
     public Text getTitle() {
         return this.title;
+    }
+
+    @Override
+    public Text getTitleFor(ServerPlayNetworkHandler handler) {
+        return this.getTitle();
     }
 
     public void setTitle(Text title) {
@@ -128,6 +133,7 @@ public class Sidebar {
         }
     }
 
+    @Nullable
     public SidebarLine getLine(int value) {
         for (SidebarLine line : this.elements) {
             if (line.getValue() == value) {
@@ -191,7 +197,7 @@ public class Sidebar {
         if (!isActive) {
             this.isActive = true;
             for (ServerPlayNetworkHandler player : this.players) {
-                ((SidebarHolder) player).addSidebar(this);
+                SidebarUtils.addSidebar(player, this);
             }
         }
     }
@@ -200,7 +206,7 @@ public class Sidebar {
         if (this.isActive) {
             this.isActive = false;
             for (ServerPlayNetworkHandler player : this.players) {
-                ((SidebarHolder) player).removeSidebar(this);
+                SidebarUtils.removeSidebar(player, this);
             }
         }
     }
@@ -212,7 +218,7 @@ public class Sidebar {
     public void addPlayer(ServerPlayNetworkHandler handler) {
         if (this.players.add(handler)) {
             if (isActive) {
-                ((SidebarHolder) handler).addSidebar(this);
+                SidebarUtils.addSidebar(handler, this);
             }
         }
     }
@@ -221,7 +227,7 @@ public class Sidebar {
         if (this.players.remove(handler)) {
             if (isActive) {
                 if (!handler.player.isDisconnected()) {
-                    ((SidebarHolder) handler).removeSidebar(this);
+                    SidebarUtils.removeSidebar(handler, this);
                 }
             }
         }
@@ -239,6 +245,10 @@ public class Sidebar {
         return Collections.unmodifiableSet(this.players);
     }
 
+    @Override
+    public void disconnected(ServerPlayNetworkHandler handler) {
+        this.removePlayer(handler);
+    }
 
     public enum Priority {
         LOWEST(0),

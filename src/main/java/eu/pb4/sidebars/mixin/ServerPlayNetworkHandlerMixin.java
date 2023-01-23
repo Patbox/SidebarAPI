@@ -1,10 +1,10 @@
 package eu.pb4.sidebars.mixin;
 
 import eu.pb4.sidebars.SidebarAPIMod;
+import eu.pb4.sidebars.api.SidebarInterface;
 import eu.pb4.sidebars.api.lines.ImmutableSidebarLine;
-import eu.pb4.sidebars.api.Sidebar;
 import eu.pb4.sidebars.api.lines.SidebarLine;
-import eu.pb4.sidebars.interfaces.SidebarHolder;
+import eu.pb4.sidebars.impl.SidebarHolder;
 import net.minecraft.network.Packet;
 import net.minecraft.network.packet.s2c.play.ScoreboardDisplayS2CPacket;
 import net.minecraft.network.packet.s2c.play.ScoreboardObjectiveUpdateS2CPacket;
@@ -28,32 +28,37 @@ import java.util.Set;
 public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
 
     @Unique
-    private final Set<Sidebar> sidebars = new HashSet<>();
+    private final Set<SidebarInterface> sidebarApi$sidebars = new HashSet<>();
     @Unique
-    private final ImmutableSidebarLine[] lines = new ImmutableSidebarLine[15];
+    private final ImmutableSidebarLine[] sidebarApi$lines = new ImmutableSidebarLine[15];
     @Unique
-    private Sidebar currentSidebar = null;
+    private SidebarInterface sidebarApi$currentSidebar = null;
     @Unique
-    private Text title = null;
+    private Text sidebarApi$title = null;
     @Unique
-    private boolean alreadyHidden = true;
+    private boolean sidebarApi$alreadyHidden = true;
 
-    @Unique int currentTick = 0;
+    @Unique int sidebarApi$currentTick = 0;
 
     @Shadow
     public abstract void sendPacket(Packet<?> packet);
 
     @Inject(method = "onDisconnected", at = @At("TAIL"))
-    private void removeFromSidebars(Text reason, CallbackInfo ci) {
-        for (Sidebar sidebar : new HashSet<>(this.sidebars)) {
-            sidebar.removePlayer((ServerPlayNetworkHandler) (Object) this);
+    private void sidebarApi$removeFromSidebars(Text reason, CallbackInfo ci) {
+        for (SidebarInterface sidebar : new HashSet<>(this.sidebarApi$sidebars)) {
+            sidebar.disconnected((ServerPlayNetworkHandler) (Object) this);
         }
     }
 
     @Inject(method = "tick", at = @At("TAIL"))
-    private void updateSidebar(CallbackInfo ci) {
-        if (this.currentSidebar == null && !this.alreadyHidden) {
-            this.alreadyHidden = true;
+    private void sidebarApi$updateSidebar(CallbackInfo ci) {
+        this.sidebarApi$updateState(true);
+    }
+
+    @Override
+    public void sidebarApi$removeEmpty() {
+        if (!this.sidebarApi$alreadyHidden) {
+            this.sidebarApi$alreadyHidden = true;
             {
                 ScoreboardDisplayS2CPacket packet = new ScoreboardDisplayS2CPacket(1, null);
                 this.sendPacket(packet);
@@ -64,28 +69,27 @@ public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
                 this.sendPacket(packet);
             }
 
-            this.title = null;
-            for (int index = 0; index < this.lines.length; index++) {
-                if (this.lines[index] != null) {
+            this.sidebarApi$title = null;
+            for (int index = 0; index < this.sidebarApi$lines.length; index++) {
+                if (this.sidebarApi$lines[index] != null) {
                     this.sendPacket(TeamS2CPacket.updateRemovedTeam(SidebarAPIMod.TEAMS.get(index)));
-                    this.lines[index] = null;
+                    this.sidebarApi$lines[index] = null;
                 }
             }
         }
+    }
 
-        if (this.currentSidebar == null) {
-            return;
-        }
-
-        if (this.alreadyHidden) {
-            this.alreadyHidden = false;
-            this.title = this.currentSidebar.getTitle();
-            this.currentTick = 0;
+    @Override
+    public void sidebarApi$setupInitial() {
+        if (this.sidebarApi$alreadyHidden) {
+            this.sidebarApi$alreadyHidden = false;
+            this.sidebarApi$title = this.sidebarApi$currentSidebar.getTitleFor((ServerPlayNetworkHandler) (Object) this);
+            this.sidebarApi$currentTick = 0;
 
             {
                 ScoreboardObjectiveUpdateS2CPacket packet = new ScoreboardObjectiveUpdateS2CPacket(SidebarAPIMod.SCOREBOARD_OBJECTIVE, 0);
                 SOUS2CPacketAccessor accessor = (SOUS2CPacketAccessor) packet;
-                accessor.setTitle(this.title);
+                accessor.setTitle(this.sidebarApi$title);
                 this.sendPacket(packet);
             }
             {
@@ -96,8 +100,8 @@ public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
             }
 
             int x = 0;
-            for (SidebarLine line : this.currentSidebar.getLinesFor((ServerPlayNetworkHandler) (Object) this)) {
-                this.lines[x] = line.immutableCopy((ServerPlayNetworkHandler) (Object) this);
+            for (SidebarLine line : this.sidebarApi$currentSidebar.getLinesFor((ServerPlayNetworkHandler) (Object) this)) {
+                this.sidebarApi$lines[x] = line.immutableCopy((ServerPlayNetworkHandler) (Object) this);
                 TeamS2CPacket packet = TeamS2CPacket.updateTeam(SidebarAPIMod.TEAMS.get(x), true);
                 ((SerializableTeamAccessor) packet.getTeam().get()).setPrefix(line.getText((ServerPlayNetworkHandler) (Object) this));
                 this.sendPacket(packet);
@@ -106,99 +110,112 @@ public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
                         ServerScoreboard.UpdateMode.CHANGE, SidebarAPIMod.OBJECTIVE_NAME, SidebarAPIMod.FAKE_PLAYER_NAMES.get(x), line.getValue()));
                 x++;
             }
-        } else {
-            if (this.currentTick % this.currentSidebar.getUpdateRate() != 0) {
-                this.currentTick++;
-                return;
-            }
-
-            Text sidebarTitle = this.currentSidebar.getTitle();
-            if (!sidebarTitle.equals(this.title)) {
-                this.title = sidebarTitle;
-                ScoreboardObjectiveUpdateS2CPacket packet = new ScoreboardObjectiveUpdateS2CPacket(SidebarAPIMod.SCOREBOARD_OBJECTIVE, 2);
-                SOUS2CPacketAccessor accessor = (SOUS2CPacketAccessor) packet;
-                accessor.setTitle(this.title);
-                this.sendPacket(packet);
-            }
-
-            int index = 0;
-
-            for (SidebarLine line : this.currentSidebar.getLinesFor((ServerPlayNetworkHandler) (Object) this)) {
-                if (this.lines[index] == null || !this.lines[index].equals(line, (ServerPlayNetworkHandler) (Object) this)) {
-                    TeamS2CPacket packet = TeamS2CPacket.updateTeam(SidebarAPIMod.TEAMS.get(index),this.lines[index] == null);
-                    ((SerializableTeamAccessor) packet.getTeam().get()).setPrefix(line.getText((ServerPlayNetworkHandler) (Object) this));
-                    this.sendPacket(packet);
-
-                    this.sendPacket(new ScoreboardPlayerUpdateS2CPacket(
-                            ServerScoreboard.UpdateMode.CHANGE, SidebarAPIMod.OBJECTIVE_NAME, SidebarAPIMod.FAKE_PLAYER_NAMES.get(index), line.getValue()));
-
-                    this.lines[index] = line.immutableCopy((ServerPlayNetworkHandler) (Object) this);
-                }
-                index++;
-            }
-
-            for (; index < this.lines.length; index++) {
-                if (this.lines[index] != null) {
-                    this.sendPacket(new ScoreboardPlayerUpdateS2CPacket(
-                            ServerScoreboard.UpdateMode.REMOVE, SidebarAPIMod.OBJECTIVE_NAME, SidebarAPIMod.FAKE_PLAYER_NAMES.get(index), 0));
-                    this.sendPacket(TeamS2CPacket.updateRemovedTeam(SidebarAPIMod.TEAMS.get(index)));
-                }
-
-                this.lines[index] = null;
-            }
-            this.currentTick++;
         }
     }
 
     @Override
-    public void addSidebar(Sidebar sidebar) {
-        this.sidebars.add(sidebar);
-        this.updateCurrentSidebar(sidebar);
+    public void sidebarApi$updateText() {
+        Text sidebarTitle = this.sidebarApi$currentSidebar.getTitleFor((ServerPlayNetworkHandler) (Object) this);
+        if (!sidebarTitle.equals(this.sidebarApi$title)) {
+            this.sidebarApi$title = sidebarTitle;
+            ScoreboardObjectiveUpdateS2CPacket packet = new ScoreboardObjectiveUpdateS2CPacket(SidebarAPIMod.SCOREBOARD_OBJECTIVE, 2);
+            SOUS2CPacketAccessor accessor = (SOUS2CPacketAccessor) packet;
+            accessor.setTitle(this.sidebarApi$title);
+            this.sendPacket(packet);
+        }
+
+        int index = 0;
+
+        for (SidebarLine line : this.sidebarApi$currentSidebar.getLinesFor((ServerPlayNetworkHandler) (Object) this)) {
+            if (this.sidebarApi$lines[index] == null || !this.sidebarApi$lines[index].equals(line, (ServerPlayNetworkHandler) (Object) this)) {
+                TeamS2CPacket packet = TeamS2CPacket.updateTeam(SidebarAPIMod.TEAMS.get(index),this.sidebarApi$lines[index] == null);
+                ((SerializableTeamAccessor) packet.getTeam().get()).setPrefix(line.getText((ServerPlayNetworkHandler) (Object) this));
+                this.sendPacket(packet);
+
+                this.sendPacket(new ScoreboardPlayerUpdateS2CPacket(
+                        ServerScoreboard.UpdateMode.CHANGE, SidebarAPIMod.OBJECTIVE_NAME, SidebarAPIMod.FAKE_PLAYER_NAMES.get(index), line.getValue()));
+
+                this.sidebarApi$lines[index] = line.immutableCopy((ServerPlayNetworkHandler) (Object) this);
+            }
+            index++;
+        }
+
+        for (; index < this.sidebarApi$lines.length; index++) {
+            if (this.sidebarApi$lines[index] != null) {
+                this.sendPacket(new ScoreboardPlayerUpdateS2CPacket(
+                        ServerScoreboard.UpdateMode.REMOVE, SidebarAPIMod.OBJECTIVE_NAME, SidebarAPIMod.FAKE_PLAYER_NAMES.get(index), 0));
+                this.sendPacket(TeamS2CPacket.updateRemovedTeam(SidebarAPIMod.TEAMS.get(index)));
+            }
+
+            this.sidebarApi$lines[index] = null;
+        }
     }
 
     @Override
-    public void removeSidebar(Sidebar sidebar) {
-        this.sidebars.remove(sidebar);
-        if (sidebar == this.currentSidebar) {
-            Sidebar newSidebar = null;
-            for (Sidebar sidebar1 : this.sidebars) {
+    public void sidebarApi$updateState(boolean tick) {
+        if (this.sidebarApi$currentSidebar == null) {
+            this.sidebarApi$removeEmpty();
+            return;
+        }
+
+        if (this.sidebarApi$alreadyHidden) {
+            this.sidebarApi$setupInitial();
+        } else if (tick && !this.sidebarApi$currentSidebar.manualTextUpdates()) {
+            if (this.sidebarApi$currentTick % this.sidebarApi$currentSidebar.getUpdateRate() != 0) {
+                this.sidebarApi$currentTick++;
+                return;
+            }
+
+            this.sidebarApi$updateText();
+
+            this.sidebarApi$currentTick++;
+        }
+    }
+
+    @Override
+    public void sidebarApi$add(SidebarInterface sidebar) {
+        this.sidebarApi$sidebars.add(sidebar);
+        this.sidebarApi$update(sidebar);
+    }
+
+    @Override
+    public void sidebarApi$remove(SidebarInterface sidebar) {
+        this.sidebarApi$sidebars.remove(sidebar);
+        if (sidebar == this.sidebarApi$currentSidebar) {
+            SidebarInterface newSidebar = null;
+            for (var sidebar1 : this.sidebarApi$sidebars) {
                 if (newSidebar == null || newSidebar.getPriority().isLowerThan(sidebar1.getPriority())) {
                     newSidebar = sidebar1;
                 }
             }
-            this.setCurrentSidebar(newSidebar);
+            this.sidebarApi$currentSidebar = newSidebar;
         }
     }
 
     @Override
-    public Set<Sidebar> getSidebarSet() {
-        return Collections.unmodifiableSet(this.sidebars);
+    public Set<SidebarInterface> sidebarApi$getAll() {
+        return Collections.unmodifiableSet(this.sidebarApi$sidebars);
     }
 
     @Override
-    public Sidebar getCurrentSidebar() {
-        return this.currentSidebar;
-    }
-
-    @Unique
-    private void setCurrentSidebar(Sidebar sidebar) {
-        this.currentSidebar = sidebar;
+    public SidebarInterface sidebarApi$getCurrent() {
+        return this.sidebarApi$currentSidebar;
     }
 
     @Override
-    public void updateCurrentSidebar(Sidebar candidate) {
-        if (this.currentSidebar != null) {
-            if (this.currentSidebar.getPriority().isLowerThan(candidate.getPriority())) {
-                this.setCurrentSidebar(candidate);
+    public void sidebarApi$update(SidebarInterface candidate) {
+        if (this.sidebarApi$currentSidebar != null) {
+            if (this.sidebarApi$currentSidebar.getPriority().isLowerThan(candidate.getPriority())) {
+                this.sidebarApi$currentSidebar = candidate;
             }
         } else {
-            this.setCurrentSidebar(candidate);
+            this.sidebarApi$currentSidebar = candidate;
         }
     }
 
     @Override
-    public void clearSidebars() {
-        this.sidebars.clear();
-        this.setCurrentSidebar(null);
+    public void sidebarApi$clear() {
+        this.sidebarApi$sidebars.clear();
+        this.sidebarApi$currentSidebar = null;
     }
 }

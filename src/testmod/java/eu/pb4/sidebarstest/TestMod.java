@@ -4,7 +4,7 @@ import com.mojang.brigadier.context.CommandContext;
 import eu.pb4.sidebars.api.ScrollableSidebar;
 import eu.pb4.sidebars.api.Sidebar;
 import eu.pb4.sidebars.api.lines.SidebarLine;
-import eu.pb4.sidebars.interfaces.SidebarHolder;
+import eu.pb4.sidebars.impl.SidebarHolder;
 import eu.pb4.sidebarstest.mixin.StyleAccessor;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -140,7 +140,7 @@ public class TestMod implements ModInitializer {
         try {
             ServerPlayerEntity player = objectCommandContext.getSource().getPlayer();
 
-            ((SidebarHolder) player.networkHandler).clearSidebars();
+            ((SidebarHolder) player.networkHandler).sidebarApi$clear();
 
         } catch (Exception e) {
             e.printStackTrace();

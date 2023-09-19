@@ -5,12 +5,16 @@ import eu.pb4.sidebars.api.SidebarInterface;
 import eu.pb4.sidebars.api.lines.ImmutableSidebarLine;
 import eu.pb4.sidebars.api.lines.SidebarLine;
 import eu.pb4.sidebars.impl.SidebarHolder;
-import net.minecraft.network.Packet;
+import net.minecraft.network.ClientConnection;
 import net.minecraft.network.packet.s2c.play.ScoreboardDisplayS2CPacket;
 import net.minecraft.network.packet.s2c.play.ScoreboardObjectiveUpdateS2CPacket;
 import net.minecraft.network.packet.s2c.play.ScoreboardPlayerUpdateS2CPacket;
 import net.minecraft.network.packet.s2c.play.TeamS2CPacket;
+import net.minecraft.scoreboard.ScoreboardDisplaySlot;
 import net.minecraft.scoreboard.ServerScoreboard;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ConnectedClientData;
+import net.minecraft.server.network.ServerCommonNetworkHandler;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Mixin;
@@ -25,7 +29,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Mixin(ServerPlayNetworkHandler.class)
-public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
+public abstract class ServerPlayNetworkHandlerMixin extends ServerCommonNetworkHandler implements SidebarHolder {
 
     @Unique
     private final Set<SidebarInterface> sidebarApi$sidebars = new HashSet<>();
@@ -40,8 +44,9 @@ public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
 
     @Unique int sidebarApi$currentTick = 0;
 
-    @Shadow
-    public abstract void sendPacket(Packet<?> packet);
+    public ServerPlayNetworkHandlerMixin(MinecraftServer server, ClientConnection connection, ConnectedClientData clientData) {
+        super(server, connection, clientData);
+    }
 
     @Inject(method = "onDisconnected", at = @At("TAIL"))
     private void sidebarApi$removeFromSidebars(Text reason, CallbackInfo ci) {
@@ -60,7 +65,7 @@ public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
         if (!this.sidebarApi$alreadyHidden) {
             this.sidebarApi$alreadyHidden = true;
             {
-                ScoreboardDisplayS2CPacket packet = new ScoreboardDisplayS2CPacket(1, null);
+                ScoreboardDisplayS2CPacket packet = new ScoreboardDisplayS2CPacket(ScoreboardDisplaySlot.SIDEBAR, null);
                 this.sendPacket(packet);
             }
 
@@ -93,7 +98,7 @@ public abstract class ServerPlayNetworkHandlerMixin implements SidebarHolder {
                 this.sendPacket(packet);
             }
             {
-                ScoreboardDisplayS2CPacket packet = new ScoreboardDisplayS2CPacket(1, null);
+                ScoreboardDisplayS2CPacket packet = new ScoreboardDisplayS2CPacket(ScoreboardDisplaySlot.SIDEBAR, null);
                 ScoreboardDisplayS2CPacketAccessor accessor = (ScoreboardDisplayS2CPacketAccessor) packet;
                 accessor.setName(SidebarAPIMod.OBJECTIVE_NAME);
                 this.sendPacket(packet);

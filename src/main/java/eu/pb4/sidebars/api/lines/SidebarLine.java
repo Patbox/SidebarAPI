@@ -1,6 +1,8 @@
 package eu.pb4.sidebars.api.lines;
 
 import eu.pb4.sidebars.api.Sidebar;
+import net.minecraft.scoreboard.number.BlankNumberFormat;
+import net.minecraft.scoreboard.number.NumberFormat;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
@@ -25,6 +27,12 @@ public interface SidebarLine {
     boolean setValue(int value);
 
     /**
+     * Gets number format for selected player
+     */
+    @Nullable
+    NumberFormat getNumberFormat(ServerPlayNetworkHandler handler);
+
+    /**
      * Gets text for selected player. Uses
      *
      * @param handler Player's ServerPlayNetworkHandler
@@ -36,7 +44,7 @@ public interface SidebarLine {
      * Creates a static, immutable copy of this SidebarLine, that's used for comparing
      */
     default ImmutableSidebarLine immutableCopy(ServerPlayNetworkHandler handler) {
-        return new ImmutableSidebarLine(this.getValue(), this.getText(handler).copy());
+        return new ImmutableSidebarLine(this.getValue(), this.getText(handler).copy(), this.getNumberFormat(handler));
     }
 
     /**
@@ -75,8 +83,13 @@ public interface SidebarLine {
     static SidebarLine createEmpty(int value) {
         return new AbstractSidebarLine() {
             @Override
-            public Text getText() {
+            public Text getText(ServerPlayNetworkHandler handler) {
                 return Text.empty();
+            }
+
+            @Override
+            public NumberFormat getNumberFormat(ServerPlayNetworkHandler handler) {
+                return BlankNumberFormat.INSTANCE;
             }
         };
     }

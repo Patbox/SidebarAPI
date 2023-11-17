@@ -1,15 +1,12 @@
 package eu.pb4.sidebars.mixin;
 
-import eu.pb4.sidebars.SidebarAPIMod;
+import eu.pb4.sidebars.impl.SidebarAPIMod;
 import eu.pb4.sidebars.api.SidebarInterface;
 import eu.pb4.sidebars.api.lines.ImmutableSidebarLine;
 import eu.pb4.sidebars.api.lines.SidebarLine;
 import eu.pb4.sidebars.impl.SidebarHolder;
 import net.minecraft.network.ClientConnection;
-import net.minecraft.network.packet.s2c.play.ScoreboardDisplayS2CPacket;
-import net.minecraft.network.packet.s2c.play.ScoreboardObjectiveUpdateS2CPacket;
-import net.minecraft.network.packet.s2c.play.ScoreboardPlayerUpdateS2CPacket;
-import net.minecraft.network.packet.s2c.play.TeamS2CPacket;
+import net.minecraft.network.packet.s2c.play.*;
 import net.minecraft.scoreboard.ScoreboardDisplaySlot;
 import net.minecraft.scoreboard.ServerScoreboard;
 import net.minecraft.server.MinecraftServer;
@@ -50,8 +47,9 @@ public abstract class ServerPlayNetworkHandlerMixin extends ServerCommonNetworkH
 
     @Inject(method = "onDisconnected", at = @At("TAIL"))
     private void sidebarApi$removeFromSidebars(Text reason, CallbackInfo ci) {
+        var handler = (ServerPlayNetworkHandler) (Object) this;
         for (SidebarInterface sidebar : new HashSet<>(this.sidebarApi$sidebars)) {
-            sidebar.disconnected((ServerPlayNetworkHandler) (Object) this);
+            sidebar.disconnected(handler);
         }
     }
 
@@ -73,24 +71,18 @@ public abstract class ServerPlayNetworkHandlerMixin extends ServerCommonNetworkH
                 ScoreboardObjectiveUpdateS2CPacket packet = new ScoreboardObjectiveUpdateS2CPacket( SidebarAPIMod.SCOREBOARD_OBJECTIVE, 1);
                 this.sendPacket(packet);
             }
-
-            this.sidebarApi$title = null;
-            for (int index = 0; index < this.sidebarApi$lines.length; index++) {
-                if (this.sidebarApi$lines[index] != null) {
-                    this.sendPacket(TeamS2CPacket.updateRemovedTeam(SidebarAPIMod.TEAMS.get(index)));
-                    this.sidebarApi$lines[index] = null;
-                }
-            }
         }
     }
 
     @Override
     public void sidebarApi$setupInitial() {
         if (this.sidebarApi$alreadyHidden) {
-            this.sidebarApi$alreadyHidden = false;
-            this.sidebarApi$title = this.sidebarApi$currentSidebar.getTitleFor((ServerPlayNetworkHandler) (Object) this);
-            this.sidebarApi$currentTick = 0;
+            var handler = (ServerPlayNetworkHandler) (Object) this;
 
+            this.sidebarApi$alreadyHidden = false;
+            this.sidebarApi$title = this.sidebarApi$currentSidebar.getTitleFor(handler);
+            this.sidebarApi$currentTick = 0;
+            
             {
                 ScoreboardObjectiveUpdateS2CPacket packet = new ScoreboardObjectiveUpdateS2CPacket(SidebarAPIMod.SCOREBOARD_OBJECTIVE, 0);
                 SOUS2CPacketAccessor accessor = (SOUS2CPacketAccessor) packet;
@@ -105,14 +97,10 @@ public abstract class ServerPlayNetworkHandlerMixin extends ServerCommonNetworkH
             }
 
             int x = 0;
-            for (SidebarLine line : this.sidebarApi$currentSidebar.getLinesFor((ServerPlayNetworkHandler) (Object) this)) {
-                this.sidebarApi$lines[x] = line.immutableCopy((ServerPlayNetworkHandler) (Object) this);
-                TeamS2CPacket packet = TeamS2CPacket.updateTeam(SidebarAPIMod.TEAMS.get(x), true);
-                ((SerializableTeamAccessor) packet.getTeam().get()).setPrefix(line.getText((ServerPlayNetworkHandler) (Object) this));
-                this.sendPacket(packet);
-
-                this.sendPacket(new ScoreboardPlayerUpdateS2CPacket(
-                        ServerScoreboard.UpdateMode.CHANGE, SidebarAPIMod.OBJECTIVE_NAME, SidebarAPIMod.FAKE_PLAYER_NAMES.get(x), line.getValue()));
+            for (SidebarLine line : this.sidebarApi$currentSidebar.getLinesFor(handler)) {
+                this.sidebarApi$lines[x] = line.immutableCopy(handler);
+                this.sendPacket(new ScoreboardScoreUpdateS2CPacket(
+                        SidebarAPIMod.FAKE_PLAYER_NAMES.get(x), SidebarAPIMod.OBJECTIVE_NAME, line.getValue(), line.getText(handler), line.getNumberFormat(handler)));
                 x++;
             }
         }
@@ -120,7 +108,9 @@ public abstract class ServerPlayNetworkHandlerMixin extends ServerCommonNetworkH
 
     @Override
     public void sidebarApi$updateText() {
-        Text sidebarTitle = this.sidebarApi$currentSidebar.getTitleFor((ServerPlayNetworkHandler) (Object) this);
+        var handler = (ServerPlayNetworkHandler) (Object) this;
+
+        Text sidebarTitle = this.sidebarApi$currentSidebar.getTitleFor(handler);
         if (!sidebarTitle.equals(this.sidebarApi$title)) {
             this.sidebarApi$title = sidebarTitle;
             ScoreboardObjectiveUpdateS2CPacket packet = new ScoreboardObjectiveUpdateS2CPacket(SidebarAPIMod.SCOREBOARD_OBJECTIVE, 2);
@@ -131,25 +121,20 @@ public abstract class ServerPlayNetworkHandlerMixin extends ServerCommonNetworkH
 
         int index = 0;
 
-        for (SidebarLine line : this.sidebarApi$currentSidebar.getLinesFor((ServerPlayNetworkHandler) (Object) this)) {
-            if (this.sidebarApi$lines[index] == null || !this.sidebarApi$lines[index].equals(line, (ServerPlayNetworkHandler) (Object) this)) {
-                TeamS2CPacket packet = TeamS2CPacket.updateTeam(SidebarAPIMod.TEAMS.get(index),this.sidebarApi$lines[index] == null);
-                ((SerializableTeamAccessor) packet.getTeam().get()).setPrefix(line.getText((ServerPlayNetworkHandler) (Object) this));
-                this.sendPacket(packet);
+        for (SidebarLine line : this.sidebarApi$currentSidebar.getLinesFor(handler)) {
+            if (this.sidebarApi$lines[index] == null || !this.sidebarApi$lines[index].equals(line, handler)) {
 
-                this.sendPacket(new ScoreboardPlayerUpdateS2CPacket(
-                        ServerScoreboard.UpdateMode.CHANGE, SidebarAPIMod.OBJECTIVE_NAME, SidebarAPIMod.FAKE_PLAYER_NAMES.get(index), line.getValue()));
+                this.sendPacket(new ScoreboardScoreUpdateS2CPacket(
+                        SidebarAPIMod.FAKE_PLAYER_NAMES.get(index), SidebarAPIMod.OBJECTIVE_NAME, line.getValue(), line.getText(handler), line.getNumberFormat(handler)));
 
-                this.sidebarApi$lines[index] = line.immutableCopy((ServerPlayNetworkHandler) (Object) this);
+                this.sidebarApi$lines[index] = line.immutableCopy(handler);
             }
             index++;
         }
 
         for (; index < this.sidebarApi$lines.length; index++) {
             if (this.sidebarApi$lines[index] != null) {
-                this.sendPacket(new ScoreboardPlayerUpdateS2CPacket(
-                        ServerScoreboard.UpdateMode.REMOVE, SidebarAPIMod.OBJECTIVE_NAME, SidebarAPIMod.FAKE_PLAYER_NAMES.get(index), 0));
-                this.sendPacket(TeamS2CPacket.updateRemovedTeam(SidebarAPIMod.TEAMS.get(index)));
+                this.sendPacket(new ScoreboardScoreResetS2CPacket(SidebarAPIMod.FAKE_PLAYER_NAMES.get(index), SidebarAPIMod.OBJECTIVE_NAME));
             }
 
             this.sidebarApi$lines[index] = null;

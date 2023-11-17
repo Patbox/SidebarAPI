@@ -3,6 +3,7 @@ package eu.pb4.sidebars.api;
 import eu.pb4.sidebars.api.lines.LineBuilder;
 import eu.pb4.sidebars.api.lines.SidebarLine;
 import eu.pb4.sidebars.api.lines.SimpleSidebarLine;
+import net.minecraft.scoreboard.number.NumberFormat;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
@@ -22,6 +23,8 @@ public class Sidebar implements SidebarInterface {
     protected Text title;
     protected boolean isDirty = false;
     protected int updateRate = 1;
+    @Nullable
+    protected NumberFormat defaultNumberFormat = null;
 
     protected boolean isActive = false;
 
@@ -48,6 +51,14 @@ public class Sidebar implements SidebarInterface {
         }
     }
 
+    public @Nullable NumberFormat getDefaultNumberFormat() {
+        return defaultNumberFormat;
+    }
+
+    public void setDefaultNumberFormat(@Nullable NumberFormat defaultNumberFormat) {
+        this.defaultNumberFormat = defaultNumberFormat;
+    }
+
     public int getUpdateRate() {
         return this.updateRate;
     }
@@ -68,17 +79,12 @@ public class Sidebar implements SidebarInterface {
     public void setTitle(Text title) {
         this.title = title;
     }
+    public void setLine(int value, Text text, @Nullable NumberFormat format) {
+        setLine(new SimpleSidebarLine(value, text, format, this));
+    }
 
     public void setLine(int value, Text text) {
-        for (SidebarLine line : this.elements) {
-            if (line.getValue() == value) {
-                this.elements.set(this.elements.indexOf(line), new SimpleSidebarLine(value, text, this));
-                return;
-            }
-        }
-
-        this.elements.add(new SimpleSidebarLine(value, text, this));
-        this.isDirty = true;
+        setLine(new SimpleSidebarLine(value, text, this.defaultNumberFormat, this));
     }
 
     public void setLine(SidebarLine line) {
@@ -108,13 +114,13 @@ public class Sidebar implements SidebarInterface {
         if (this.elements.isEmpty()) {
             int lastLine = texts.length;
             for (Text t : texts) {
-                this.elements.add(new SimpleSidebarLine(--lastLine, t, this));
+                this.elements.add(new SimpleSidebarLine(--lastLine, t, this.defaultNumberFormat, this));
             }
         } else {
             this.sortIfDirty();
             int lastLine = this.elements.get(this.elements.size() - 1).getValue();
             for (Text t : texts) {
-                this.elements.add(new SimpleSidebarLine(--lastLine, t, this));
+                this.elements.add(new SimpleSidebarLine(--lastLine, t, this.defaultNumberFormat, this));
             }
         }
     }
@@ -167,7 +173,7 @@ public class Sidebar implements SidebarInterface {
     }
 
     public void set(Consumer<LineBuilder> consumer) {
-        LineBuilder builder = new LineBuilder();
+        LineBuilder builder = new LineBuilder(this.defaultNumberFormat);
         consumer.accept(builder);
         this.replaceLines(builder);
     }

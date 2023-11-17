@@ -8,6 +8,8 @@ import eu.pb4.sidebars.impl.SidebarHolder;
 import eu.pb4.sidebarstest.mixin.StyleAccessor;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.scoreboard.number.BlankNumberFormat;
+import net.minecraft.scoreboard.number.StyledNumberFormat;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Style;
@@ -44,7 +46,18 @@ public class TestMod implements ModInitializer {
                                 null,
                                 Math.random() > 0.6 ? new Identifier("default") : Math.random() > 0.3 ? new Identifier("uniform") : new Identifier("alt")
                                 )
-                ));
+                ), new StyledNumberFormat( StyleAccessor.invokeInit(
+                        TextColor.fromRgb((int) (Math.random() * 0xFFFFFF)),
+                        Math.random() > 0.5,
+                        Math.random() > 0.5,
+                        Math.random() > 0.5,
+                        Math.random() > 0.5,
+                        Math.random() > 0.5,
+                        null,
+                        null,
+                        null,
+                        Math.random() > 0.6 ? new Identifier("default") : Math.random() > 0.3 ? new Identifier("uniform") : new Identifier("alt")
+                )));
             }
 
             sidebar.show();
@@ -69,6 +82,8 @@ public class TestMod implements ModInitializer {
             for (int x = 0; x < 40; x++) {
                 builder.append("Hello World! ");
             }
+
+            sidebar.setDefaultNumberFormat(BlankNumberFormat.INSTANCE);
 
             sidebar.setLine(0, Text.literal(builder.toString()).setStyle(
                     StyleAccessor.invokeInit(

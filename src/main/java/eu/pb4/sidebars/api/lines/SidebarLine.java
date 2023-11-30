@@ -74,6 +74,10 @@ public interface SidebarLine {
         return new SimpleSidebarLine(value, text);
     }
 
+    static SidebarLine create(int value, Text text, NumberFormat format) {
+        return new SimpleSidebarLine(value, text, format);
+    }
+
     /**
      * Quick way to create SidebarLine instance with more advanced text building
      *

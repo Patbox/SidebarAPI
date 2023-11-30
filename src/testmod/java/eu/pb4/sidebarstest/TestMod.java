@@ -9,6 +9,7 @@ import eu.pb4.sidebarstest.mixin.StyleAccessor;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.scoreboard.number.BlankNumberFormat;
+import net.minecraft.scoreboard.number.FixedNumberFormat;
 import net.minecraft.scoreboard.number.StyledNumberFormat;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -135,7 +136,7 @@ public class TestMod implements ModInitializer {
             int speed = (int) (Math.random() * 20);
             sidebar.setUpdateRate(speed);
 
-            sidebar.addLines(SidebarLine.create(2, Text.literal("" + speed)));
+            sidebar.addLines(SidebarLine.create(2, Text.literal("" + speed), new FixedNumberFormat(Text.literal("<- Speed"))));
 
             sidebar.addLines(SidebarLine.create(2, (p) -> {
                 System.out.println(p.age);

@@ -85,7 +85,7 @@ public interface SidebarLine {
      * @return SidebarLine
      */
     static SidebarLine createEmpty(int value) {
-        return new AbstractSidebarLine() {
+        AbstractSidebarLine abstractSidebarLine = new AbstractSidebarLine() {
             @Override
             public Text getText(ServerPlayNetworkHandler handler) {
                 return Text.empty();
@@ -96,5 +96,7 @@ public interface SidebarLine {
                 return BlankNumberFormat.INSTANCE;
             }
         };
+        abstractSidebarLine.setValue(value);
+        return abstractSidebarLine;
     }
 }

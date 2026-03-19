@@ -3,10 +3,10 @@ package eu.pb4.sidebars.api;
 import eu.pb4.sidebars.api.lines.LineBuilder;
 import eu.pb4.sidebars.api.lines.SidebarLine;
 import eu.pb4.sidebars.api.lines.SimpleSidebarLine;
-import net.minecraft.scoreboard.number.NumberFormat;
-import net.minecraft.server.network.ServerPlayNetworkHandler;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.numbers.NumberFormat;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -18,9 +18,9 @@ import java.util.function.Consumer;
 @SuppressWarnings({ "unused" })
 public class Sidebar implements SidebarInterface {
     protected List<SidebarLine> elements = new ArrayList<>();
-    protected Set<ServerPlayNetworkHandler> players = new HashSet<>();
+    protected Set<ServerGamePacketListenerImpl> players = new HashSet<>();
     protected Priority priority;
-    protected Text title;
+    protected Component title;
     protected boolean isDirty = false;
     protected int updateRate = 1;
     @Nullable
@@ -30,10 +30,10 @@ public class Sidebar implements SidebarInterface {
 
     public Sidebar(Priority priority) {
         this.priority = priority;
-        this.title = Text.empty();
+        this.title = Component.empty();
     }
 
-    public Sidebar(Text title, Priority priority) {
+    public Sidebar(Component title, Priority priority) {
         this.priority = priority;
         this.title = title;
     }
@@ -45,7 +45,7 @@ public class Sidebar implements SidebarInterface {
     public void setPriority(Priority priority) {
         this.priority = priority;
         if (this.isActive) {
-            for (ServerPlayNetworkHandler player : this.players) {
+            for (ServerGamePacketListenerImpl player : this.players) {
                 SidebarUtils.updatePriorities(player, this);
             }
         }
@@ -67,23 +67,23 @@ public class Sidebar implements SidebarInterface {
         this.updateRate = Math.max(updateRate, 1);
     }
 
-    public Text getTitle() {
+    public Component getTitle() {
         return this.title;
     }
 
     @Override
-    public Text getTitleFor(ServerPlayNetworkHandler handler) {
+    public Component getTitleFor(ServerGamePacketListenerImpl handler) {
         return this.getTitle();
     }
 
-    public void setTitle(Text title) {
+    public void setTitle(Component title) {
         this.title = title;
     }
-    public void setLine(int value, Text text, @Nullable NumberFormat format) {
+    public void setLine(int value, Component text, @Nullable NumberFormat format) {
         setLine(new SimpleSidebarLine(value, text, format, this));
     }
 
-    public void setLine(int value, Text text) {
+    public void setLine(int value, Component text) {
         setLine(new SimpleSidebarLine(value, text, this.defaultNumberFormat, this));
     }
 
@@ -110,16 +110,16 @@ public class Sidebar implements SidebarInterface {
     }
 
 
-    public void addLines(Text... texts) {
+    public void addLines(Component... texts) {
         if (this.elements.isEmpty()) {
             int lastLine = texts.length;
-            for (Text t : texts) {
+            for (Component t : texts) {
                 this.elements.add(new SimpleSidebarLine(--lastLine, t, this.defaultNumberFormat, this));
             }
         } else {
             this.sortIfDirty();
             int lastLine = this.elements.get(this.elements.size() - 1).getValue();
-            for (Text t : texts) {
+            for (Component t : texts) {
                 this.elements.add(new SimpleSidebarLine(--lastLine, t, this.defaultNumberFormat, this));
             }
         }
@@ -150,7 +150,7 @@ public class Sidebar implements SidebarInterface {
         return null;
     }
 
-    public void replaceLines(Text... texts) {
+    public void replaceLines(Component... texts) {
         this.clearLines();
         this.addLines(texts);
     }
@@ -186,7 +186,7 @@ public class Sidebar implements SidebarInterface {
         this.isDirty = true;
     }
 
-    public List<SidebarLine> getLinesFor(ServerPlayNetworkHandler handler) {
+    public List<SidebarLine> getLinesFor(ServerGamePacketListenerImpl handler) {
         this.sortIfDirty();
 
         return this.elements.subList(0, Math.min(14, this.elements.size()));
@@ -202,7 +202,7 @@ public class Sidebar implements SidebarInterface {
     public void show() {
         if (!isActive) {
             this.isActive = true;
-            for (ServerPlayNetworkHandler player : this.players) {
+            for (ServerGamePacketListenerImpl player : this.players) {
                 SidebarUtils.addSidebar(player, this);
             }
         }
@@ -211,7 +211,7 @@ public class Sidebar implements SidebarInterface {
     public void hide() {
         if (this.isActive) {
             this.isActive = false;
-            for (ServerPlayNetworkHandler player : this.players) {
+            for (ServerGamePacketListenerImpl player : this.players) {
                 SidebarUtils.removeSidebar(player, this);
             }
         }
@@ -221,7 +221,7 @@ public class Sidebar implements SidebarInterface {
         return this.isActive;
     }
 
-    public void addPlayer(ServerPlayNetworkHandler handler) {
+    public void addPlayer(ServerGamePacketListenerImpl handler) {
         if (this.players.add(handler)) {
             if (isActive) {
                 SidebarUtils.addSidebar(handler, this);
@@ -229,30 +229,30 @@ public class Sidebar implements SidebarInterface {
         }
     }
 
-    public void removePlayer(ServerPlayNetworkHandler handler) {
+    public void removePlayer(ServerGamePacketListenerImpl handler) {
         if (this.players.remove(handler)) {
             if (isActive) {
-                if (!handler.player.isDisconnected()) {
+                if (!handler.player.hasDisconnected()) {
                     SidebarUtils.removeSidebar(handler, this);
                 }
             }
         }
     }
 
-    public void addPlayer(ServerPlayerEntity player) {
-        this.addPlayer(player.networkHandler);
+    public void addPlayer(ServerPlayer player) {
+        this.addPlayer(player.connection);
     }
 
-    public void removePlayer(ServerPlayerEntity player) {
-        this.removePlayer(player.networkHandler);
+    public void removePlayer(ServerPlayer player) {
+        this.removePlayer(player.connection);
     }
 
-    public Set<ServerPlayNetworkHandler> getPlayerHandlerSet() {
+    public Set<ServerGamePacketListenerImpl> getPlayerHandlerSet() {
         return Collections.unmodifiableSet(this.players);
     }
 
     @Override
-    public void disconnected(ServerPlayNetworkHandler handler) {
+    public void disconnected(ServerGamePacketListenerImpl handler) {
         this.removePlayer(handler);
     }
 

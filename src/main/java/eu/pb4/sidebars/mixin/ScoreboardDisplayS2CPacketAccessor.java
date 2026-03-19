@@ -1,14 +1,15 @@
 package eu.pb4.sidebars.mixin;
 
 
-import net.minecraft.network.packet.s2c.play.ScoreboardDisplayS2CPacket;
+import net.minecraft.network.protocol.game.ClientboundSetDisplayObjectivePacket;
+import net.minecraft.network.protocol.game.ClientboundSetScorePacket;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(ScoreboardDisplayS2CPacket.class)
+@Mixin(ClientboundSetDisplayObjectivePacket.class)
 public interface ScoreboardDisplayS2CPacketAccessor {
     @Mutable
-    @Accessor("name")
+    @Accessor("objectiveName")
     void setName(String name);
 }

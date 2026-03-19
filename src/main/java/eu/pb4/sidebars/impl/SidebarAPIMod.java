@@ -1,11 +1,11 @@
 package eu.pb4.sidebars.impl;
 
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.scoreboard.Scoreboard;
-import net.minecraft.scoreboard.ScoreboardCriterion;
-import net.minecraft.scoreboard.ScoreboardObjective;
-import net.minecraft.scoreboard.Team;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.scores.Objective;
+import net.minecraft.world.scores.Scoreboard;
+import net.minecraft.world.scores.criteria.ObjectiveCriteria;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,9 +14,9 @@ public class SidebarAPIMod implements ModInitializer {
     public static final List<String> FAKE_PLAYER_NAMES = new ArrayList<>();
     public static final Scoreboard SCOREBOARD = new Scoreboard();
     public static final String OBJECTIVE_NAME = "■SidebarApiObj";
-    public static final ScoreboardObjective SCOREBOARD_OBJECTIVE = new ScoreboardObjective(
-            SCOREBOARD, OBJECTIVE_NAME, ScoreboardCriterion.DUMMY,
-            Text.literal("Something went wrong..."), ScoreboardCriterion.RenderType.INTEGER, false, null);
+    public static final Objective SCOREBOARD_OBJECTIVE = new Objective(
+            SCOREBOARD, OBJECTIVE_NAME, ObjectiveCriteria.DUMMY,
+            Component.literal("Something went wrong..."), ObjectiveCriteria.RenderType.INTEGER, false, null);
 
     @Override
     public void onInitialize() {

@@ -3,13 +3,13 @@ package eu.pb4.sidebars.api;
 import eu.pb4.sidebars.api.lines.SidebarLine;
 import it.unimi.dsi.fastutil.objects.Object2LongArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
-import net.minecraft.server.network.ServerPlayNetworkHandler;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
 
 import java.util.List;
 
 public class ScrollableSidebar extends Sidebar {
-    protected Object2LongMap<ServerPlayNetworkHandler> position = new Object2LongArrayMap<>();
+    protected Object2LongMap<ServerGamePacketListenerImpl> position = new Object2LongArrayMap<>();
     protected int scrollTickNumber;
 
     public ScrollableSidebar(Priority priority, int scrollTickNumber) {
@@ -17,7 +17,7 @@ public class ScrollableSidebar extends Sidebar {
         this.scrollTickNumber = scrollTickNumber;
     }
 
-    public ScrollableSidebar(Text title, Priority priority, int scrollTickNumber) {
+    public ScrollableSidebar(Component title, Priority priority, int scrollTickNumber) {
         super(title, priority);
         this.scrollTickNumber = scrollTickNumber;
     }
@@ -31,7 +31,7 @@ public class ScrollableSidebar extends Sidebar {
     }
 
     @Override
-    public List<SidebarLine> getLinesFor(ServerPlayNetworkHandler handler) {
+    public List<SidebarLine> getLinesFor(ServerGamePacketListenerImpl handler) {
         this.sortIfDirty();
         long pos = this.position.getLong(handler);
         pos++;
@@ -48,7 +48,7 @@ public class ScrollableSidebar extends Sidebar {
     }
 
     @Override
-    public void removePlayer(ServerPlayNetworkHandler handler) {
+    public void removePlayer(ServerGamePacketListenerImpl handler) {
         super.removePlayer(handler);
         this.position.removeLong(handler);
     }

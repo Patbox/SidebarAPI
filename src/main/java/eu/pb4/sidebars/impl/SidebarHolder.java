@@ -1,7 +1,7 @@
 package eu.pb4.sidebars.impl;
 
 import eu.pb4.sidebars.api.SidebarInterface;
-import net.minecraft.server.network.ServerPlayNetworkHandler;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
 
 import java.util.Set;
 
@@ -17,7 +17,7 @@ public interface SidebarHolder {
     void sidebarApi$updateText();
     void sidebarApi$updateState(boolean tick);
 
-    static SidebarHolder of(ServerPlayNetworkHandler handler) {
+    static SidebarHolder of(ServerGamePacketListenerImpl handler) {
         return (SidebarHolder) handler;
     }
 }

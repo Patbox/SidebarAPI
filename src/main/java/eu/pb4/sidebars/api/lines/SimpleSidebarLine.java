@@ -1,46 +1,45 @@
 package eu.pb4.sidebars.api.lines;
 
 import eu.pb4.sidebars.api.Sidebar;
-import net.minecraft.scoreboard.number.BlankNumberFormat;
-import net.minecraft.scoreboard.number.NumberFormat;
-import net.minecraft.server.network.ServerPlayNetworkHandler;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.numbers.NumberFormat;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Simple implementation of SidebarLine
  */
 public class SimpleSidebarLine extends AbstractSidebarLine {
-    private Text text;
+    private Component text;
     @Nullable
     private NumberFormat numberFormat;
 
-    public SimpleSidebarLine(int value, Text text, @Nullable NumberFormat format) {
+    public SimpleSidebarLine(int value, Component text, @Nullable NumberFormat format) {
         this.text = text;
         this.value = value;
         this.numberFormat = format;
     }
-    public SimpleSidebarLine(int value, Text text) {
+    public SimpleSidebarLine(int value, Component text) {
         this(value, text, (NumberFormat) null);
     }
 
-    public SimpleSidebarLine(int value, Text text, Sidebar sidebar) {
+    public SimpleSidebarLine(int value, Component text, Sidebar sidebar) {
         this(value, text);
         this.sidebar = sidebar;
     }
 
-    public SimpleSidebarLine(int value, Text text, NumberFormat numberFormat, Sidebar sidebar) {
+    public SimpleSidebarLine(int value, Component text, NumberFormat numberFormat, Sidebar sidebar) {
         this(value, text, numberFormat);
         this.sidebar = sidebar;
     }
 
-    public Text getText() {
+    public Component getText() {
         return this.text;
     }
 
     @Nullable
     @Override
-    public NumberFormat getNumberFormat(ServerPlayNetworkHandler handler) {
+    public NumberFormat getNumberFormat(ServerGamePacketListenerImpl handler) {
         return getNumberFormat();
     }
 
@@ -52,11 +51,11 @@ public class SimpleSidebarLine extends AbstractSidebarLine {
         return this.numberFormat;
     }
 
-    public Text getText(ServerPlayNetworkHandler handler) {
+    public Component getText(ServerGamePacketListenerImpl handler) {
         return this.getText();
     }
 
-    public void setText(Text text) {
+    public void setText(Component text) {
         this.text = text;
     }
 }

@@ -1,22 +1,23 @@
 package eu.pb4.sidebars.mixin;
 
-import eu.pb4.sidebars.impl.SidebarAPIMod;
 import eu.pb4.sidebars.api.SidebarInterface;
 import eu.pb4.sidebars.api.lines.ImmutableSidebarLine;
 import eu.pb4.sidebars.api.lines.SidebarLine;
+import eu.pb4.sidebars.impl.SidebarAPIMod;
 import eu.pb4.sidebars.impl.SidebarHolder;
-import net.minecraft.network.ClientConnection;
-import net.minecraft.network.DisconnectionInfo;
-import net.minecraft.network.packet.s2c.play.*;
-import net.minecraft.scoreboard.ScoreboardDisplaySlot;
-import net.minecraft.scoreboard.ServerScoreboard;
+import net.minecraft.network.Connection;
+import net.minecraft.network.DisconnectionDetails;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundResetScorePacket;
+import net.minecraft.network.protocol.game.ClientboundSetDisplayObjectivePacket;
+import net.minecraft.network.protocol.game.ClientboundSetObjectivePacket;
+import net.minecraft.network.protocol.game.ClientboundSetScorePacket;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ConnectedClientData;
-import net.minecraft.server.network.ServerCommonNetworkHandler;
-import net.minecraft.server.network.ServerPlayNetworkHandler;
-import net.minecraft.text.Text;
+import net.minecraft.server.network.CommonListenerCookie;
+import net.minecraft.server.network.ServerCommonPacketListenerImpl;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
+import net.minecraft.world.scores.DisplaySlot;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -28,29 +29,30 @@ import java.util.Optional;
 import java.util.Set;
 
 @SuppressWarnings("UnreachableCode")
-@Mixin(ServerPlayNetworkHandler.class)
-public abstract class ServerPlayNetworkHandlerMixin extends ServerCommonNetworkHandler implements SidebarHolder {
+@Mixin(ServerGamePacketListenerImpl.class)
+public abstract class ServerPlayNetworkHandlerMixin extends ServerCommonPacketListenerImpl implements SidebarHolder {
 
     @Unique
     private final Set<SidebarInterface> sidebarApi$sidebars = new HashSet<>();
     @Unique
     private final ImmutableSidebarLine[] sidebarApi$lines = new ImmutableSidebarLine[15];
     @Unique
+    int sidebarApi$currentTick = 0;
+    @Unique
     private SidebarInterface sidebarApi$currentSidebar = null;
     @Unique
-    private Text sidebarApi$title = null;
+    private Component sidebarApi$title = null;
     @Unique
     private boolean sidebarApi$alreadyHidden = true;
 
-    @Unique int sidebarApi$currentTick = 0;
-
-    public ServerPlayNetworkHandlerMixin(MinecraftServer server, ClientConnection connection, ConnectedClientData clientData) {
-        super(server, connection, clientData);
+    public ServerPlayNetworkHandlerMixin(MinecraftServer server, Connection connection, CommonListenerCookie cookie) {
+        super(server, connection, cookie);
     }
 
-    @Inject(method = "onDisconnected", at = @At("TAIL"))
-    private void sidebarApi$removeFromSidebars(DisconnectionInfo info, CallbackInfo ci) {
-        var handler = (ServerPlayNetworkHandler) (Object) this;
+
+    @Inject(method = "onDisconnect", at = @At("TAIL"))
+    private void sidebarApi$removeFromSidebars(DisconnectionDetails details, CallbackInfo ci) {
+        var handler = (ServerGamePacketListenerImpl) (Object) this;
         for (SidebarInterface sidebar : new HashSet<>(this.sidebarApi$sidebars)) {
             sidebar.disconnected(handler);
         }
@@ -66,13 +68,13 @@ public abstract class ServerPlayNetworkHandlerMixin extends ServerCommonNetworkH
         if (!this.sidebarApi$alreadyHidden) {
             this.sidebarApi$alreadyHidden = true;
             {
-                ScoreboardDisplayS2CPacket packet = new ScoreboardDisplayS2CPacket(ScoreboardDisplaySlot.SIDEBAR, null);
-                this.sendPacket(packet);
+                ClientboundSetDisplayObjectivePacket packet = new ClientboundSetDisplayObjectivePacket(DisplaySlot.SIDEBAR, null);
+                this.send(packet);
             }
 
             {
-                ScoreboardObjectiveUpdateS2CPacket packet = new ScoreboardObjectiveUpdateS2CPacket( SidebarAPIMod.SCOREBOARD_OBJECTIVE, 1);
-                this.sendPacket(packet);
+                ClientboundSetObjectivePacket packet = new ClientboundSetObjectivePacket(SidebarAPIMod.SCOREBOARD_OBJECTIVE, 1);
+                this.send(packet);
             }
         }
     }
@@ -80,29 +82,29 @@ public abstract class ServerPlayNetworkHandlerMixin extends ServerCommonNetworkH
     @Override
     public void sidebarApi$setupInitial() {
         if (this.sidebarApi$alreadyHidden) {
-            var handler = (ServerPlayNetworkHandler) (Object) this;
+            var handler = (ServerGamePacketListenerImpl) (Object) this;
 
             this.sidebarApi$alreadyHidden = false;
             this.sidebarApi$title = this.sidebarApi$currentSidebar.getTitleFor(handler);
             this.sidebarApi$currentTick = 0;
-            
+
             {
-                ScoreboardObjectiveUpdateS2CPacket packet = new ScoreboardObjectiveUpdateS2CPacket(SidebarAPIMod.SCOREBOARD_OBJECTIVE, 0);
+                ClientboundSetObjectivePacket packet = new ClientboundSetObjectivePacket(SidebarAPIMod.SCOREBOARD_OBJECTIVE, 0);
                 SOUS2CPacketAccessor accessor = (SOUS2CPacketAccessor) packet;
                 accessor.setTitle(this.sidebarApi$title);
-                this.sendPacket(packet);
+                this.send(packet);
             }
             {
-                ScoreboardDisplayS2CPacket packet = new ScoreboardDisplayS2CPacket(ScoreboardDisplaySlot.SIDEBAR, null);
-                ScoreboardDisplayS2CPacketAccessor accessor = (ScoreboardDisplayS2CPacketAccessor) packet;
+                ClientboundSetDisplayObjectivePacket packet = new ClientboundSetDisplayObjectivePacket(DisplaySlot.SIDEBAR, null);
+                var accessor = (ScoreboardDisplayS2CPacketAccessor) packet;
                 accessor.setName(SidebarAPIMod.OBJECTIVE_NAME);
-                this.sendPacket(packet);
+                this.send(packet);
             }
 
             int x = 0;
             for (SidebarLine line : this.sidebarApi$currentSidebar.getLinesFor(handler)) {
                 this.sidebarApi$lines[x] = line.immutableCopy(handler);
-                this.sendPacket(new ScoreboardScoreUpdateS2CPacket(
+                this.send(new ClientboundSetScorePacket(
                         SidebarAPIMod.FAKE_PLAYER_NAMES.get(x), SidebarAPIMod.OBJECTIVE_NAME, line.getValue(), Optional.of(line.getText(handler)), Optional.ofNullable(line.getNumberFormat(handler))));
                 x++;
             }
@@ -111,15 +113,15 @@ public abstract class ServerPlayNetworkHandlerMixin extends ServerCommonNetworkH
 
     @Override
     public void sidebarApi$updateText() {
-        var handler = (ServerPlayNetworkHandler) (Object) this;
+        var handler = (ServerGamePacketListenerImpl) (Object) this;
 
-        Text sidebarTitle = this.sidebarApi$currentSidebar.getTitleFor(handler);
+        Component sidebarTitle = this.sidebarApi$currentSidebar.getTitleFor(handler);
         if (!sidebarTitle.equals(this.sidebarApi$title)) {
             this.sidebarApi$title = sidebarTitle;
-            ScoreboardObjectiveUpdateS2CPacket packet = new ScoreboardObjectiveUpdateS2CPacket(SidebarAPIMod.SCOREBOARD_OBJECTIVE, 2);
+            ClientboundSetObjectivePacket packet = new ClientboundSetObjectivePacket(SidebarAPIMod.SCOREBOARD_OBJECTIVE, 2);
             SOUS2CPacketAccessor accessor = (SOUS2CPacketAccessor) packet;
             accessor.setTitle(this.sidebarApi$title);
-            this.sendPacket(packet);
+            this.send(packet);
         }
 
         int index = 0;
@@ -127,7 +129,7 @@ public abstract class ServerPlayNetworkHandlerMixin extends ServerCommonNetworkH
         for (SidebarLine line : this.sidebarApi$currentSidebar.getLinesFor(handler)) {
             if (this.sidebarApi$lines[index] == null || !this.sidebarApi$lines[index].equals(line, handler)) {
 
-                this.sendPacket(new ScoreboardScoreUpdateS2CPacket(
+                this.send(new ClientboundSetScorePacket(
                         SidebarAPIMod.FAKE_PLAYER_NAMES.get(index), SidebarAPIMod.OBJECTIVE_NAME, line.getValue(), Optional.of(line.getText(handler)), Optional.ofNullable(line.getNumberFormat(handler))));
 
                 this.sidebarApi$lines[index] = line.immutableCopy(handler);
@@ -137,7 +139,7 @@ public abstract class ServerPlayNetworkHandlerMixin extends ServerCommonNetworkH
 
         for (; index < this.sidebarApi$lines.length; index++) {
             if (this.sidebarApi$lines[index] != null) {
-                this.sendPacket(new ScoreboardScoreResetS2CPacket(SidebarAPIMod.FAKE_PLAYER_NAMES.get(index), SidebarAPIMod.OBJECTIVE_NAME));
+                this.send(new ClientboundResetScorePacket(SidebarAPIMod.FAKE_PLAYER_NAMES.get(index), SidebarAPIMod.OBJECTIVE_NAME));
             }
 
             this.sidebarApi$lines[index] = null;

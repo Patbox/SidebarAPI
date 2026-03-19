@@ -1,11 +1,12 @@
 package eu.pb4.sidebars.api.lines;
 
 import eu.pb4.sidebars.api.Sidebar;
-import net.minecraft.scoreboard.number.BlankNumberFormat;
-import net.minecraft.scoreboard.number.NumberFormat;
-import net.minecraft.server.network.ServerPlayNetworkHandler;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
+
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.numbers.BlankFormat;
+import net.minecraft.network.chat.numbers.NumberFormat;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Function;
@@ -30,20 +31,20 @@ public interface SidebarLine {
      * Gets number format for selected player
      */
     @Nullable
-    NumberFormat getNumberFormat(ServerPlayNetworkHandler handler);
+    NumberFormat getNumberFormat(ServerGamePacketListenerImpl handler);
 
     /**
      * Gets text for selected player. Uses
      *
-     * @param handler Player's ServerPlayNetworkHandler
-     * @return Text displayed for player
+     * @param handler Player's ServerGamePacketListenerImpl
+     * @return Component displayed for player
      */
-    Text getText(ServerPlayNetworkHandler handler);
+    Component getText(ServerGamePacketListenerImpl handler);
 
     /**
      * Creates a static, immutable copy of this SidebarLine, that's used for comparing
      */
-    default ImmutableSidebarLine immutableCopy(ServerPlayNetworkHandler handler) {
+    default ImmutableSidebarLine immutableCopy(ServerGamePacketListenerImpl handler) {
         return new ImmutableSidebarLine(this.getValue(), this.getText(handler).copy(), this.getNumberFormat(handler));
     }
 
@@ -59,7 +60,7 @@ public interface SidebarLine {
      * @param textBuilder Function creating text
      * @return SidebarLine 
      */
-    static SidebarLine create(int value, Function<@Nullable ServerPlayerEntity, Text> textBuilder) {
+    static SidebarLine create(int value, Function<@Nullable ServerPlayer, Component> textBuilder) {
         return new SuppliedSidebarLine(value, textBuilder);
     }
 
@@ -70,11 +71,11 @@ public interface SidebarLine {
      * @param text Text
      * @return SidebarLine
      */
-    static SidebarLine create(int value, Text text) {
+    static SidebarLine create(int value, Component text) {
         return new SimpleSidebarLine(value, text);
     }
 
-    static SidebarLine create(int value, Text text, NumberFormat format) {
+    static SidebarLine create(int value, Component text, NumberFormat format) {
         return new SimpleSidebarLine(value, text, format);
     }
 
@@ -87,13 +88,13 @@ public interface SidebarLine {
     static SidebarLine createEmpty(int value) {
         AbstractSidebarLine abstractSidebarLine = new AbstractSidebarLine() {
             @Override
-            public Text getText(ServerPlayNetworkHandler handler) {
-                return Text.empty();
+            public Component getText(ServerGamePacketListenerImpl handler) {
+                return Component.empty();
             }
 
             @Override
-            public NumberFormat getNumberFormat(ServerPlayNetworkHandler handler) {
-                return BlankNumberFormat.INSTANCE;
+            public NumberFormat getNumberFormat(ServerGamePacketListenerImpl handler) {
+                return BlankFormat.INSTANCE;
             }
         };
         abstractSidebarLine.setValue(value);

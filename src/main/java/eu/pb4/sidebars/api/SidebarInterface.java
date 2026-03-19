@@ -1,8 +1,8 @@
 package eu.pb4.sidebars.api;
 
 import eu.pb4.sidebars.api.lines.SidebarLine;
-import net.minecraft.server.network.ServerPlayNetworkHandler;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
 
 import java.util.*;
 
@@ -16,15 +16,15 @@ public interface SidebarInterface {
         return 1;
     }
 
-    Text getTitleFor(ServerPlayNetworkHandler handler);
+    Component getTitleFor(ServerGamePacketListenerImpl handler);
 
     boolean isDirty();
 
-    List<SidebarLine> getLinesFor(ServerPlayNetworkHandler handler);
+    List<SidebarLine> getLinesFor(ServerGamePacketListenerImpl handler);
 
     boolean isActive();
 
-    void disconnected(ServerPlayNetworkHandler handler);
+    void disconnected(ServerGamePacketListenerImpl handler);
 
     default boolean manualTextUpdates() {
         return false;

@@ -1,9 +1,9 @@
 package eu.pb4.sidebars.api.lines;
 
 import eu.pb4.sidebars.api.Sidebar;
-import net.minecraft.scoreboard.number.NumberFormat;
-import net.minecraft.server.network.ServerPlayNetworkHandler;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.numbers.NumberFormat;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
@@ -11,7 +11,7 @@ import java.util.Objects;
 /**
  * Immutable version of SidebarLine used for comparison of change.
  */
-public record ImmutableSidebarLine(int value, Text text, @Nullable NumberFormat format) implements SidebarLine {
+public record ImmutableSidebarLine(int value, Component text, @Nullable NumberFormat format) implements SidebarLine {
 
     @Override
     public int getValue() {
@@ -24,20 +24,20 @@ public record ImmutableSidebarLine(int value, Text text, @Nullable NumberFormat 
     }
 
     @Override
-    public Text getText(ServerPlayNetworkHandler handler) {
+    public Component getText(ServerGamePacketListenerImpl handler) {
         return this.text;
     }
 
     @Nullable
     @Override
-    public NumberFormat getNumberFormat(ServerPlayNetworkHandler handler) {
+    public NumberFormat getNumberFormat(ServerGamePacketListenerImpl handler) {
         return format;
     }
 
     @Override
     public void setSidebar(@Nullable Sidebar sidebar) {}
 
-    public boolean equals(Object o, ServerPlayNetworkHandler handler) {
+    public boolean equals(Object o, ServerGamePacketListenerImpl handler) {
         if (this == o) return true;
         if (o == null || !(o instanceof SidebarLine)) return false;
         SidebarLine that = (SidebarLine) o;
